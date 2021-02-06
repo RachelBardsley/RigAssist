@@ -16,29 +16,61 @@ string $FK_leg_list[] = `ls -sl`;
 
 //# make FK nurb controls
 circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_leg_control");
-matchTransform ($R_or_L + "_FK_leg_control") $FK_leg_rename;
-makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+group -em -name ($R_or_L + "_FK_leg_control_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_FK_leg_control");
+select -tgl ($R_or_L + "_FK_leg_control_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_FK_leg_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_leg");
+parent -r -s;
+parent -w;
 
-circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 8 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_shin_control");
-matchTransform ($R_or_L + "_FK_shin_control") $FK_leg_list[1];
-makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_shin_control");
+group -em -name ($R_or_L + "_FK_shin_control_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_FK_shin_control");
+select -tgl ($R_or_L + "_FK_shin_control_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_FK_shin_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_shin");
+parent -r -s;
+parent -w;
 
-circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 6 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_heel_control");
-matchTransform ($R_or_L + "_FK_heel_control") $FK_leg_list[2];
-makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_heel_control");
+group -em -name ($R_or_L + "_FK_heel_control_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_FK_heel_control");
+select -tgl ($R_or_L + "_FK_heel_control_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_FK_heel_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_heel");
+parent -r -s;
+parent -w;
 
-circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 6 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_ball_control");
-matchTransform ($R_or_L + "_FK_ball_control") $FK_leg_list[3];
-makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_ball_control");
+group -em -name ($R_or_L + "_FK_ball_control_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_FK_ball_control");
+select -tgl ($R_or_L + "_FK_ball_control_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_FK_ball_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_ball");
+parent -r -s;
+parent -w;
 
 //# parent structure FK controls
-select -r ($R_or_L + "_FK_ball_control");
+select -r ($R_or_L + "_FK_ball_control_pivotgroup");
 select -tgl ($R_or_L + "_FK_heel_control");
 parent;
-select -r ($R_or_L + "_FK_heel_control");
+select -r ($R_or_L + "_FK_heel_control_pivotgroup");
 select -tgl ($R_or_L + "_FK_shin_control");
 parent;
-select -r ($R_or_L + "_FK_shin_control");
+select -r ($R_or_L + "_FK_shin_control_pivotgroup");
 select -tgl ($R_or_L + "_FK_leg_control");
 parent;
 
@@ -211,7 +243,7 @@ parentConstraint -mo -weight 1;
 group -em -name ($R_or_L + "_leg_controls");
 select -r ($IK_leg_rename + "_knee_control");
 select -tgl $newfootikcontrol1;
-select -tgl ($R_or_L + "_FK_leg_control");
+select -tgl ($R_or_L + "_FK_leg_control_pivotgroup");
 select -tgl ($R_or_L + "_IK_FK_switch");
 select -tgl ($R_or_L + "_leg_controls");
 parent;
@@ -337,6 +369,12 @@ connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_toe_rot_IKFKs
 connectAttr -f ($R_or_L + "_FK_toe.rotate") ($R_or_L + "_toe_rot_IKFKswitch.color2");
 connectAttr -f ($R_or_L + "_IK_toe.rotate") ($R_or_L + "_toe_rot_IKFKswitch.color1");
 connectAttr -f ($R_or_L + "_toe_rot_IKFKswitch.output") ($R_or_L + "_base_toe.rotate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_ball_rot_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_ball_rot_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_ball.rotate") ($R_or_L + "_ball_rot_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_ball.rotate") ($R_or_L + "_ball_rot_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_ball_rot_IKFKswitch.output") ($R_or_L + "_base_ball.rotate");
 
 //# Create measurement tool for kneesnap and stretchy measurements. First creates the 'locators' of leg, knee and ankle for them to hook into
 
