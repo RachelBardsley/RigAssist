@@ -1,0 +1,477 @@
+string $arm_duplicate[] = `ls -sl`;
+
+//#determine if L or R 
+string $R_or_L = `substring $FK_arm[0] 1 1`;
+
+//# create FK arm copy
+select $arm_duplicate[0];
+duplicate -rr;
+searchReplaceNames "base" "FK" "hierarchy";
+string $FK_arm[] = `ls -sl`;
+int $namelen = `size $FK_arm[0]` - 1;
+string $FK_arm_rename = `substring $FK_arm[0] 1 $namelen`;
+rename  $FK_arm[0] $FK_arm_rename;
+
+select -hi;
+string $FK_arm_list[] = `ls -sl`;
+
+//# make FK nurb controls
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_arm_control");
+group -em -name ($R_or_L + "_FK_arm_control_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_FK_arm_control");
+select -tgl ($R_or_L + "_FK_arm_control_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_FK_arm_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_arm");
+parent -r -s;
+parent -w;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_forearm_control");
+group -em -name ($R_or_L + "_FK_forearm_control_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_FK_forearm_control");
+select -tgl ($R_or_L + "_FK_forearm_control_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_FK_forearm_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_forearm");
+parent -r -s;
+parent -w;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_wrist_control");
+group -em -name ($R_or_L + "_FK_wrist_control_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_FK_wrist_control");
+select -tgl ($R_or_L + "_FK_wrist_control_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_FK_wrist_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_wrist");
+parent -r -s;
+parent -w;
+
+
+//# parent structure FK controls
+select -r ($R_or_L + "_FK_wrist_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_forearm_control");
+parent;
+select -r ($R_or_L + "_FK_forearm_control_pivotgroup");
+select -tgl ($R_or_L + "_FK_arm_control");
+parent;
+
+//# constrain FK arm to FK controls
+select -r ($R_or_L + "_FK_arm_control");
+select -tgl $FK_arm_rename;
+orientConstraint -mo -weight 1;
+select -r ($R_or_L + "_FK_forearm_control");
+select -tgl $FK_arm_list[1];
+orientConstraint -mo -weight 1;
+select -r ($R_or_L + "_FK_wrist_control");
+select -tgl $FK_arm_list[2];
+orientConstraint -mo -weight 1;
+
+//# create IK arm copy
+select $arm_duplicate[0];
+duplicate -rr;
+searchReplaceNames "base" "IK" "hierarchy";
+string $IK_arm[] = `ls -sl`;
+string $IK_arm_rename = `substring $IK_arm[0] 1 $namelen`;
+rename $IK_arm[0] $IK_arm_rename;
+
+//# create IK arm rig
+
+$ikHandle = `ikHandle -solver ikRPsolver -startJoint ($R_or_L + "_IK_arm") -endEffector ($R_or_L + "_IK_wrist")`;
+rename $ikHandle[0] ($IK_arm_rename + "_ikHandle");
+rename $ikHandle[1] ($IK_arm_rename + "_effector");
+
+
+//# create IK nurb controls
+select custom_hand_shape;
+duplicate -rr;
+string $tempWristContro1_1[] = `ls -sl`;
+group -em -n ($R_or_L + "_custom_hand_pivotgroup");
+select -r ($tempWristContro1_1[0] + "Shape");
+select -tgl ($R_or_L + "_custom_hand_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_custom_hand_pivotgroup");
+select -tgl ($R_or_L + "_base_wrist");
+parent -r -s;
+parent -w;
+rename $tempWristContro1_1 ($R_or_L + "_IK_wrist_control");
+
+
+select custom_hand_offset_shape;
+duplicate -rr;
+string $tempWristContro1_2[] = `ls -sl`;
+group -em -n ($R_or_L + "_custom_hand_offset_pivotgroup");
+select -r ($tempWristContro1_2[0] + "Shape");
+select -tgl ($R_or_L + "_custom_hand_offset_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_custom_hand_offset_pivotgroup");
+select -tgl ($R_or_L + "_base_wrist");
+parent -r -s;
+parent -w;
+rename $tempWristContro1_2 ($R_or_L + "_IK_wrist_offset_control");
+
+
+//# create IK locators, in this case, not needed because there is no foot tilt or roll etc
+
+//# attach rig and structure IK controls
+
+select -r ($R_or_L + "_custom_hand_offset_pivotgroup");
+select -tgl ($R_or_L + "_IK_wrist_control");
+parent;
+
+select -r ($R_or_L + "_IK_arm_ikHandle");
+select -tgl ($R_or_L + "_IK_wrist_offset_control");
+parent;
+
+//# create elbow control
+select -r custom_knee_shape;
+duplicate -rr;
+string $elbow_control[] = `ls -sl`;
+rename $elbow_control ($R_or_L + "_elbow_control");
+parent -w;
+matchTransform -pos ($R_or_L  + "_elbow_control") ($R_or_L + "_IK_forearm");
+move -r 0 0 -30;
+rotate -r -180 0 0;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+//# constrain pole vector of arm IK to the elbow control
+select -r ($R_or_L  + "_elbow_control");
+select -tgl ($IK_arm_rename + "_ikHandle");
+poleVectorConstraint -weight 1;
+
+//# Create IK FK switch box shape for arm
+select -r small_box_shape;
+duplicate -rr;
+string $IKFK_switch_control[] = `ls -sl`;
+rename $IKFK_switch_control ($R_or_L + "_IK_FK_arm_switch");
+
+select -cl;
+select -r ($R_or_L + "_IK_FK_arm_switch");
+select -tgl ($R_or_L + "_base_wrist");
+parent -r -s;
+select -r ($R_or_L + "_IK_FK_arm_switch");
+move -r -os -wd -5 0 0 ;
+select -cl;
+
+select -cl  ;
+select -r ($R_or_L + "_IK_wrist_control");
+select -tgl ($R_or_L + "_IK_FK_arm_switch");
+doCreateParentConstraintArgList 1 { "1","0","0","0","0","0","0","0","1","","1" };
+parentConstraint -mo -weight 1;
+select -cl  ;
+select -r ($R_or_L + "_FK_wrist_control");
+select -tgl ($R_or_L + "_IK_FK_arm_switch");
+doCreateParentConstraintArgList 1 { "1","0","0","0","0","0","0","0","1","","1" };
+parentConstraint -mo -weight 1;
+
+//# gather FK IK and elbow controls into a group
+group -em -name ($R_or_L + "_arm_controls");
+select -r ($R_or_L + "_custom_hand_pivotgroup");
+select -tgl ($R_or_L + "_elbow_control");
+select -tgl ($R_or_L + "_FK_arm_control_pivotgroup");
+select -tgl ($R_or_L + "_IK_FK_arm_switch");
+select -tgl ($R_or_L + "_arm_controls");
+parent;
+
+//# Add custom list of attributes to the controls such as tilt, roll, etc.
+addAttr -ln "IK_elbowSnap"  -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_IK_wrist_control");
+setAttr -e-keyable true ($R_or_L + "_IK_wrist_control.IK_elbowSnap");
+addAttr -ln "Stretchy"  -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_IK_wrist_control");
+setAttr -e-keyable true ($R_or_L + "_IK_wrist_control.Stretchy");
+addAttr -ln "Show_Offset"  -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_IK_wrist_control");
+setAttr -e-keyable true ($R_or_L + "_IK_wrist_control.Show_Offset");
+
+//# Connect up locators to the foot control attributes
+connectAttr -f ($R_or_L + "_IK_wrist_control.Show_Offset") ($R_or_L + "_IK_wrist_offset_controlShape.visibility");
+
+//# lock and hide rotation, scale, visibility attributes for elbow control
+setAttr -lock true ($R_or_L + "_elbow_control.sx");
+setAttr -lock true ($R_or_L + "_elbow_control.sy");
+setAttr -lock true ($R_or_L + "_elbow_control.sz");
+setAttr -lock true ($R_or_L + "_elbow_control.v");
+
+//# Add IK FK switch attribute to the IK FK switch box shape control
+addAttr -ln "IKFKswitch" -nn "IK / FK switch" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_IK_FK_arm_switch");
+setAttr -e-keyable true ($R_or_L + "_IK_FK_arm_switch.IKFKswitch");
+
+//# create twister arm copyduplicate -rr;
+select $arm_duplicate[0];
+duplicate -rr;
+searchReplaceNames "base" "twister" "hierarchy";
+string $twister_arm[] = `ls -sl`;
+int $namelen = `size $twister_arm[0]` - 1;
+string $twister_arm_rename = `substring $twister_arm[0] 1 $namelen`;
+rename  $twister_arm[0] $twister_arm_rename;
+
+select -hi;
+string $twister_arm_list[] = `ls -sl`;
+
+
+//# create the extra twist joints in the BASE arm (for the 'twister' arm to twist.) Do not add extra joints to the twister arm.
+//# First we need the length of the forearm divided by 3
+float $forearm_lengthvalue = `getAttr ($R_or_L + "_base_wrist.translateY")`;
+$forearm_lengthvalue = $forearm_lengthvalue/4;
+//# Now create joints and move it by that value.
+insertJoint ($R_or_L + "_base_forearm");
+rename ($R_or_L + "_base_twist1");
+setAttr ($R_or_L + "_base_twist1.translateY") $forearm_lengthvalue;
+
+insertJoint ($R_or_L + "_base_twist1");
+rename ($R_or_L + "_base_twist2");
+setAttr ($R_or_L + "_base_twist2.translateY") $forearm_lengthvalue;
+
+insertJoint ($R_or_L + "_base_twist2");
+rename ($R_or_L + "_base_twist3");
+setAttr ($R_or_L + "_base_twist3.translateY") $forearm_lengthvalue;
+
+setAttr ($R_or_L + "_base_wrist.translateY") $forearm_lengthvalue;
+
+
+//# Create IK spline handle for the base arm twist joints - no longer needed, not using skin bind 
+
+//# Bind twist joints to twister arm - USED to be a skin bind technique, but I decided to use input calculations (length = length/4 that sort of thing)
+
+connectAttr -f ($R_or_L + "_twister_arm.rotate") ($R_or_L + "_base_arm.rotate");
+connectAttr -f ($R_or_L + "_twister_arm.translate") ($R_or_L + "_base_arm.translate");
+
+connectAttr -f ($R_or_L + "_twister_forearm.rotate") ($R_or_L + "_base_forearm.rotate");
+connectAttr -f ($R_or_L + "_twister_forearm.translate") ($R_or_L + "_base_forearm.translate");
+
+//# This will convert the forearm length into the 4 cut up lengths for a nice 'twist'
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_length");
+setAttr ($R_or_L + "_twistingPieces_length.operation") 2;
+setAttr ($R_or_L + "_twistingPieces_length.input2Y") 4;
+
+connectAttr -f ($R_or_L + "_twister_wrist.translate") ($R_or_L + "_twistingPieces_length.input1");
+connectAttr -f ($R_or_L + "_twistingPieces_length.outputY") ($R_or_L + "_base_twist1.translateY");
+connectAttr -f ($R_or_L + "_twistingPieces_length.outputY") ($R_or_L + "_base_twist2.translateY");
+connectAttr -f ($R_or_L + "_twistingPieces_length.outputY") ($R_or_L + "_base_twist3.translateY");
+connectAttr -f ($R_or_L + "_twistingPieces_length.outputY") ($R_or_L + "_base_wrist.translateY");
+
+//# This will connect the wrist control to rotate the IK arm... convert the wrist rotation into 4 more rotations. Arms twist more at the wrist, less at the elbow.
+//# First wrist
+connectAttr -f ($R_or_L + "_IK_wrist_control.rotateY") ($R_or_L + "_base_wrist.rotateY");
+
+//# Twist3 (above the wrist) using 1/4th of the wrist rotation
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_rotatetwist3");
+setAttr ($R_or_L + "_twistingPieces_rotatetwist3.operation") 2;
+setAttr ($R_or_L + "_twistingPieces_rotatetwist3.input2Y") 2;
+connectAttr -f ($R_or_L + "_IK_wrist_control.rotate") ($R_or_L + "_twistingPieces_rotatetwist3.input1");
+connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist3.outputY") ($R_or_L + "_base_twist3.rotateY");
+
+//# Twist2 using 1/4th of the twist3 rotation
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_rotatetwist2");
+setAttr ($R_or_L + "_twistingPieces_rotatetwist2.operation") 2;
+setAttr ($R_or_L + "_twistingPieces_rotatetwist2.input2Y") 2;
+connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist3.output") ($R_or_L + "_twistingPieces_rotatetwist2.input1");
+connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist2.outputY") ($R_or_L + "_base_twist2.rotateY");
+
+//# Twist1 using 1/4th of the twist2 rotation
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_rotatetwist1");
+setAttr ($R_or_L + "_twistingPieces_rotatetwist1.operation") 2;
+setAttr ($R_or_L + "_twistingPieces_rotatetwist1.input2Y") 2;
+connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist2.output") ($R_or_L + "_twistingPieces_rotatetwist1.input1");
+connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist1.outputY") ($R_or_L + "_base_twist1.rotateY");
+
+
+//# Create a blend node and connect translation and rotation attributes from IK / FK legs to the Base leg
+
+shadingNode -asUtility condition -name ($R_or_L + "_arm_vis_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_IK_wrist_control.visibility");
+
+setAttr ($R_or_L + "_arm_vis_IKFKswitch.colorIfTrueR") 1;
+setAttr ($R_or_L + "_arm_vis_IKFKswitch.colorIfFalseR") 0;
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_arm_vis_IKFKswitch.firstTerm");
+connectAttr -f ($R_or_L + "_arm_vis_IKFKswitch.outColorR") ($R_or_L + "_FK_arm_control.visibility");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_arm_trans_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_arm_trans_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_arm.translate") ($R_or_L + "_arm_trans_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_arm.translate") ($R_or_L + "_arm_trans_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_arm_trans_IKFKswitch.output") ($R_or_L + "_twister_arm.translate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_arm_rot_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_arm_rot_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_arm.rotate") ($R_or_L + "_arm_rot_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_arm.rotate") ($R_or_L + "_arm_rot_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_arm_rot_IKFKswitch.output") ($R_or_L + "_twister_arm.rotate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_forearm_trans_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_forearm_trans_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_forearm.translate") ($R_or_L + "_forearm_trans_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_forearm.translate") ($R_or_L + "_forearm_trans_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_forearm_trans_IKFKswitch.output") ($R_or_L + "_twister_forearm.translate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_forearm_rot_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_forearm_rot_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_forearm.rotate") ($R_or_L + "_forearm_rot_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_forearm.rotate") ($R_or_L + "_forearm_rot_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_forearm_rot_IKFKswitch.output") ($R_or_L + "_twister_forearm.rotate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_wrist_trans_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_wrist_trans_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_wrist.translate") ($R_or_L + "_wrist_trans_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_wrist.translate") ($R_or_L + "_wrist_trans_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_wrist_trans_IKFKswitch.output") ($R_or_L + "_twister_wrist.translate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_wrist_rot_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_wrist_rot_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_wrist.rotate") ($R_or_L + "_wrist_rot_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_wrist.rotate") ($R_or_L + "_wrist_rot_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_wrist_rot_IKFKswitch.output") ($R_or_L + "_twister_wrist.rotate");
+
+
+
+//# Just a way to get the IK FK switch box to follow the FK or IK controls, whichever is selected. 
+shadingNode -asUtility condition -name ($R_or_L + "_arm_switch_follow");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_arm_switch_follow.firstTerm");
+setAttr ($R_or_L + "_arm_switch_follow.colorIfTrueR") 1;
+setAttr ($R_or_L + "_arm_switch_follow.colorIfFalseR") 0;
+
+connectAttr -f ($R_or_L + "_arm_switch_follow.outColorR") ($R_or_L + "_IK_FK_arm_switch_parentConstraint1.L_FK_wrist_controlW1") ;
+connectAttr -f ($R_or_L + "_arm_switch_follow.outColorG") ($R_or_L + "_IK_FK_arm_switch_parentConstraint1.L_IK_wrist_controlW0");
+
+
+
+//# Create measurement tool for kneesnap and stretchy measurements. First creates the 'locators' of leg, knee and ankle for them to hook into
+
+//# locators for IK
+spaceLocator -p 0 0 0 -n ($R_or_L + "_IK_arm_locator");
+float $locator_coordinates[] = `xform -q -piv -ws ($R_or_L + "_IK_arm")`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+//# select -tgl ($R_or_L + "_IK_leg");
+//# parent;
+spaceLocator -p 0 0 0 -n ($R_or_L + "_IK_forearm_locator");
+float $locator_coordinates[] = `xform -q -piv -ws ($R_or_L + "_IK_forearm")`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -tgl ($R_or_L + "_IK_forearm");
+parent;
+spaceLocator -p 0 0 0 -n ($R_or_L + "_elbow_control_locator");
+float $locator_coordinates[] = `xform -q -piv -ws ($R_or_L + "_elbow_control")`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -tgl ($R_or_L + "_elbow_control");
+parent;
+spaceLocator -p 0 0 0 -n ($R_or_L + "_IK_STRETCHY_wrist_locator");
+float $locator_coordinates[] = `xform -q -piv -ws ($R_or_L + "_IK_wrist")`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -tgl ($R_or_L + "_IK_wrist_offset_control");
+parent;
+
+
+//# measurement for stretchy
+shadingNode -asUtility distanceBetween -name ($R_or_L + "_arm_to_wrist_distance");
+connectAttr -f ($R_or_L + "_IK_arm_locatorShape.worldPosition[0]") ($R_or_L + "_arm_to_wrist_distance.point1");
+connectAttr -f ($R_or_L + "_IK_STRETCHY_wrist_locatorShape.worldPosition[0]") ($R_or_L + "_arm_to_wrist_distance.point2");
+
+//# measurement for IK kneesnap
+shadingNode -asUtility distanceBetween -name ($R_or_L + "_arm_to_elbow_distance");
+connectAttr -f ($R_or_L + "_IK_arm_locatorShape.worldPosition[0]") ($R_or_L + "_arm_to_elbow_distance.point1");
+connectAttr -f ($R_or_L + "_elbow_control_locatorShape.worldPosition[0]") ($R_or_L + "_arm_to_elbow_distance.point2");
+
+shadingNode -asUtility distanceBetween -name ($R_or_L + "_elbow_to_wrist_distance");
+connectAttr -f ($R_or_L + "_elbow_control_locatorShape.worldPosition[0]") ($R_or_L + "_elbow_to_wrist_distance.point1");
+connectAttr -f ($R_or_L + "_IK_STRETCHY_wrist_locatorShape.worldPosition[0]") ($R_or_L + "_elbow_to_wrist_distance.point2");
+
+//# store original measurements of this
+float $arm_to_elbow_original_distance = `getAttr ($R_or_L + "_arm_to_elbow_distance.distance")`;
+float $elbow_to_wrist_original_distance = `getAttr ($R_or_L + "_elbow_to_wrist_distance.distance")`;
+float $arm_to_wrist_original_distance = `getAttr ($R_or_L + "_arm_to_wrist_distance.distance")`;
+//# also store original values of the leg
+float $original_IK_forearm = `getAttr ($R_or_L + "_IK_forearm.translateY")`;
+float $original_IK_wrist = `getAttr ($R_or_L + "_IK_wrist.translateY")`;
+float $forearm_and_wrist_totalValue = $original_IK_forearm + $original_IK_wrist;
+
+//# Create stretchy nodes
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_forearm_stretchy_divide");
+//# make sure it is set to divide, the default is multiply which is wrong.
+setAttr ($R_or_L + "_forearm_stretchy_divide.operation") 2;
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_forearm_stretchy_multiply");
+shadingNode -asUtility blendColors -name ($R_or_L + "_forearm_stretchy_choice");
+shadingNode -asUtility condition -name ($R_or_L + "_forearm_stretchy_limiter");
+//# change limiter operation
+setAttr ($R_or_L + "_forearm_stretchy_limiter.operation") 2;
+
+//# connection STRETCHY nodes in order of use
+connectAttr -f ($R_or_L + "_arm_to_wrist_distance.distance") ($R_or_L + "_forearm_stretchy_divide.input1Y");
+setAttr ($R_or_L + "_forearm_stretchy_divide.input2Y") $forearm_and_wrist_totalValue;
+
+connectAttr -f ($R_or_L + "_forearm_stretchy_divide.outputY") ($R_or_L + "_forearm_stretchy_multiply.input1Y");
+setAttr ($R_or_L + "_forearm_stretchy_multiply.input2Y") $original_IK_forearm;
+
+setAttr ($R_or_L + "_forearm_stretchy_choice.color2G")  $original_IK_forearm;
+connectAttr -f ($R_or_L + "_forearm_stretchy_multiply.outputY") ($R_or_L + "_forearm_stretchy_choice.color1G");
+connectAttr -f ($R_or_L + "_IK_wrist_control.Stretchy") ($R_or_L + "_forearm_stretchy_choice.blender");
+
+connectAttr -f ($R_or_L + "_forearm_stretchy_choice.outputG") ($R_or_L + "_forearm_stretchy_limiter.colorIfTrueG");
+setAttr ($R_or_L + "_forearm_stretchy_limiter.colorIfFalseG") $original_IK_forearm;   
+connectAttr -f ($R_or_L + "_forearm_stretchy_choice.outputG") ($R_or_L + "_forearm_stretchy_limiter.firstTerm");
+setAttr ($R_or_L + "_forearm_stretchy_limiter.secondTerm") $original_IK_forearm;;
+
+//# Create kneesnap choice nodes
+//# nodes in order of use
+shadingNode -asUtility blendColors -name ($R_or_L + "_forearm_elbowSnap_choice");
+
+//# connections in order of use SHIN Y TRANSLATION CHAIN FIRST
+
+connectAttr -f ($R_or_L + "_forearm_stretchy_limiter.outColorG") ($R_or_L + "_forearm_elbowSnap_choice.color2G");
+connectAttr -f ($R_or_L + "_arm_to_elbow_distance.distance") ($R_or_L + "_forearm_elbowSnap_choice.color1G");
+connectAttr -f ($R_or_L + "_IK_wrist_control.IK_elbowSnap") ($R_or_L + "_forearm_elbowSnap_choice.blender");
+
+//# finally connect it to the leg!
+
+connectAttr -f ($R_or_L + "_forearm_elbowSnap_choice.outputG") ($R_or_L + "_IK_forearm.translateY");
+
+//# NOW DUPLICATE IT ALL OVER AGAIN FOR THE HEEL!
+//# NOW DUPLICATE IT ALL OVER AGAIN FOR THE HEEL!
+//# NOW DUPLICATE IT ALL OVER AGAIN FOR THE HEEL!
+
+//# Create stretchy nodes
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_wrist_stretchy_divide");
+//# make sure it is set to divide, the default is multiply which is wrong.
+setAttr ($R_or_L + "_wrist_stretchy_divide.operation") 2;
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_wrist_stretchy_multiply");
+shadingNode -asUtility blendColors -name ($R_or_L + "_wrist_stretchy_choice");
+shadingNode -asUtility condition -name ($R_or_L + "_wrist_stretchy_limiter");
+//# change limiter operation
+setAttr ($R_or_L + "_wrist_stretchy_limiter.operation") 2;
+
+//# connection STRETCHY nodes in order of use
+connectAttr -f ($R_or_L + "_arm_to_wrist_distance.distance") ($R_or_L + "_wrist_stretchy_divide.input1Y");
+setAttr ($R_or_L + "_wrist_stretchy_divide.input2Y") $forearm_and_wrist_totalValue;
+
+connectAttr -f ($R_or_L + "_wrist_stretchy_divide.outputY") ($R_or_L + "_wrist_stretchy_multiply.input1Y");
+setAttr ($R_or_L + "_wrist_stretchy_multiply.input2Y") $original_IK_wrist;
+
+setAttr ($R_or_L + "_wrist_stretchy_choice.color2G")  $original_IK_wrist;
+connectAttr -f ($R_or_L + "_wrist_stretchy_multiply.outputY") ($R_or_L + "_wrist_stretchy_choice.color1G");
+connectAttr -f ($R_or_L + "_IK_wrist_control.Stretchy") ($R_or_L + "_wrist_stretchy_choice.blender");
+
+connectAttr -f ($R_or_L + "_wrist_stretchy_choice.outputG") ($R_or_L + "_wrist_stretchy_limiter.colorIfTrueG");
+setAttr ($R_or_L + "_wrist_stretchy_limiter.colorIfFalseG") $original_IK_wrist;
+connectAttr -f ($R_or_L + "_wrist_stretchy_choice.outputG") ($R_or_L + "_wrist_stretchy_limiter.firstTerm");
+setAttr ($R_or_L + "_wrist_stretchy_limiter.secondTerm") $original_IK_wrist;;
+
+//# Create kneesnap choice nodes
+//# nodes in order of use
+shadingNode -asUtility blendColors -name ($R_or_L + "_wrist_elbowSnap_choice");
+
+//# connections in order of use heel Y TRANSLATION CHAIN FIRST
+
+connectAttr -f ($R_or_L + "_wrist_stretchy_limiter.outColorG") ($R_or_L + "_wrist_elbowSnap_choice.color2G");
+connectAttr -f ($R_or_L + "_elbow_to_wrist_distance.distance") ($R_or_L + "_wrist_elbowSnap_choice.color1G");
+connectAttr -f ($R_or_L + "_IK_wrist_control.IK_elbowSnap") ($R_or_L + "_wrist_elbowSnap_choice.blender");
+
+//# finally connect it to the leg!
+
+connectAttr -f ($R_or_L + "_wrist_elbowSnap_choice.outputG") ($R_or_L + "_IK_wrist.translateY");
