@@ -1,0 +1,477 @@
+string $leg_duplicate[] = `ls -sl`;
+
+//#determine if L or R 
+string $R_or_L = `substring $FK_leg[0] 0 1`;
+
+//# create FK leg copy
+duplicate -rr;
+searchReplaceNames "base" "FK" "hierarchy";
+string $FK_leg[] = `ls -sl`;
+int $namelen = `size $FK_leg[0]` - 1;
+string $FK_leg_rename = `substring $FK_leg[0] 0 $namelen`;
+rename  $FK_leg[0] $FK_leg_rename;
+
+select -hi;
+string $FK_leg_list[] = `ls -sl`;
+
+//# make FK nurb controls
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_leg_control");
+matchTransform ($R_or_L + "_FK_leg_control") $FK_leg_rename;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 8 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_shin_control");
+matchTransform ($R_or_L + "_FK_shin_control") $FK_leg_list[1];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 6 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_heel_control");
+matchTransform ($R_or_L + "_FK_heel_control") $FK_leg_list[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 6 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_ball_control");
+matchTransform ($R_or_L + "_FK_ball_control") $FK_leg_list[3];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+//# parent structure FK controls
+select -r ($R_or_L + "_FK_ball_control");
+select -tgl ($R_or_L + "_FK_heel_control");
+parent;
+select -r ($R_or_L + "_FK_heel_control");
+select -tgl ($R_or_L + "_FK_shin_control");
+parent;
+select -r ($R_or_L + "_FK_shin_control");
+select -tgl ($R_or_L + "_FK_leg_control");
+parent;
+
+//# constrain FK leg to FK controls
+select -r ($R_or_L + "_FK_leg_control");
+select -tgl $FK_leg_rename;
+orientConstraint -mo -weight 1;
+select -r ($R_or_L + "_FK_shin_control");
+select -tgl $FK_leg_list[1];
+orientConstraint -mo -weight 1;
+select -r ($R_or_L + "_FK_heel_control");
+select -tgl $FK_leg_list[2];
+orientConstraint -mo -weight 1;
+select -r ($R_or_L + "_FK_ball_control");
+select -tgl $FK_leg_list[3];
+orientConstraint -mo -weight 1;
+
+//# create IK leg copy
+select $leg_duplicate[0];
+duplicate -rr;
+searchReplaceNames "base" "IK" "hierarchy";
+string $IK_leg[] = `ls -sl`;
+string $IK_leg_rename = `substring $IK_leg[0] 0 $namelen`;
+rename $IK_leg[0] $IK_leg_rename;
+
+//# create IK leg rig
+string $childBones[] = `listRelatives -ad`;
+
+$ikHandle = `ikHandle -solver ikRPsolver -startJoint $IK_leg_rename -endEffector $childBones[2]`;
+rename $ikHandle[0] ($IK_leg_rename + "_ikHandle");
+rename $ikHandle[1] ($IK_leg_rename + "_effector");
+
+select -r $childBones[2];
+string $topLegBone1[] = `ls -sl`;
+$ikHandle = `ikHandle -solver ikRPsolver -startJoint $childBones[2] -endEffector $childBones[1]`;
+rename $ikHandle[0] ($topLegBone1[0] + "_ikHandle");
+rename $ikHandle[1] ($topLegBone1[0] + "_effector");
+
+select -r $childBones[1];
+string $topLegBone2[] = `ls -sl`;
+$ikHandle = `ikHandle -solver ikRPsolver -startJoint $childBones[1] -endEffector $childBones[0]`;
+rename $ikHandle[0] ($topLegBone2[0] + "_ikHandle");
+rename $ikHandle[1] ($topLegBone2[0] + "_effector");
+
+//# create IK nurb controls
+select custom_foot_shape;
+duplicate -rr;
+string $newfootikcontrol[] = `ls -sl`;
+matchTransform -pos $newfootikcontrol $childBones[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+rename $newfootikcontrol ($R_or_L + "_IK_foot_control");
+string $newfootikcontrol1[] = `ls -sl`;
+parent -w;
+
+select custom_foot_offset_shape;
+duplicate -rr;
+string $newfootikcontrol[] = `ls -sl`;
+matchTransform -pos $newfootikcontrol $childBones[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+rename $newfootikcontrol ($R_or_L + "_IK_foot_offset_control");
+string $newfootikcontrol2[] = `ls -sl`;
+parent -w;
+
+//# create IK locators
+select -r $childBones[2];
+spaceLocator -p 0 0 0 -n ($childBones[2] + "_inner" + "_locator");
+float $locator_coordinates[] = `xform -q -piv -ws $childBones[1]`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+move -r 5 0 0;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+string $iklegorder1[] = `ls -sl`;
+
+select -r $childBones[2];
+spaceLocator -p 0 0 0 -n ($childBones[2] + "_outer"+ "_locator");
+float $locator_coordinates[] = `xform -q -piv -ws $childBones[1]`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+move -r -5 0 0;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+string $iklegorder2[] = `ls -sl`;
+
+
+select -r $childBones[2];
+spaceLocator -p 0 0 0 -n ($childBones[2] + "_locator");
+float $locator_coordinates[] = `xform -q -piv -ws $childBones[2]`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+move -r 0 -10 -8;
+string $iklegorder3[] = `ls -sl`;
+
+select -r $childBones[1];
+spaceLocator -p 0 0 0 -n ($childBones[1] + "_locator");
+float $locator_coordinates[] = `xform -q -piv -ws $childBones[1]`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+string $iklegorder4[] = `ls -sl`;
+
+select -r $childBones[0];
+spaceLocator -p 0 0 0 -n ($childBones[0] + "_locator");
+float $locator_coordinates[] = `xform -q -piv -ws $childBones[0]`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+string $iklegorder5[] = `ls -sl`;
+
+//# attach rig and structure IK controls
+select -r ($IK_leg_rename + "_ikHandle");
+select -tgl ($childBones[1] + "_locator");
+parent;
+select -r ($topLegBone1[0] + "_ikHandle");
+select -tgl ($childBones[1] + "_locator");
+parent;
+select -r ($topLegBone2[0] + "_ikHandle");
+select -tgl ($childBones[0] + "_locator");
+parent;
+select -r ($childBones[1] + "_locator");
+select -tgl ($childBones[0] + "_locator");
+parent;
+select -r ($childBones[0] + "_locator");
+select -tgl ($childBones[2] + "_inner" + "_locator");
+parent;
+select -r ($childBones[2] + "_inner" + "_locator");
+select -tgl ($childBones[2] + "_outer" + "_locator");
+parent;
+select -r ($childBones[2] + "_outer" + "_locator");
+select -tgl ($childBones[2] + "_locator");
+parent;
+select -r ($childBones[2] + "_locator");
+select -tgl $newfootikcontrol2;
+parent;
+select -r $newfootikcontrol2;
+select -tgl $newfootikcontrol1;
+parent;
+
+//# hide them!
+setAttr ($R_or_L + "_IK_heel_outer_locator.visibility") 0;
+setAttr ($R_or_L + "_IK_heel_inner_locator.visibility") 0;
+setAttr ($R_or_L + "_IK_heel_locator.visibility") 0;
+setAttr ($R_or_L + "_IK_ball_locator.visibility") 0;
+setAttr ($R_or_L + "_IK_toe_locator.visibility") 0;
+
+//# create knee control
+select -r custom_knee_shape;
+duplicate -rr;
+string $knee_control[] = `ls -sl`;
+rename $knee_control ($IK_leg_rename + "_knee_control");
+parent -w;
+matchTransform -pos ($IK_leg_rename + "_knee_control") $childBones[3];
+move -r 0 0 40;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+//# constrain pole vector of leg IK to the knee control
+select -r ($IK_leg_rename + "_knee_control");
+select -tgl ($IK_leg_rename + "_ikHandle");
+poleVectorConstraint -weight 1;
+
+//# Create IK FK switch box shape for leg
+select -r small_box_shape;
+duplicate -rr;
+string $IKFK_switch_control[] = `ls -sl`;
+rename $IKFK_switch_control ($R_or_L + "_IK_FK_switch");
+parent -w;
+matchTransform -pos ($R_or_L + "_IK_FK_switch") $childBones[2];
+move -r 0 0 -10;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+select -r ($R_or_L + "_base_heel");
+select -tgl ($R_or_L + "_IK_FK_switch");
+parentConstraint -mo -weight 1;
+
+//# gather FK IK and Knee controls into a group
+group -em -name ($R_or_L + "_leg_controls");
+select -r ($IK_leg_rename + "_knee_control");
+select -tgl $newfootikcontrol1;
+select -tgl ($R_or_L + "_FK_leg_control");
+select -tgl ($R_or_L + "_IK_FK_switch");
+select -tgl ($R_or_L + "_leg_controls");
+parent;
+
+//# Add custom list of attributes to the controls such as tilt, roll, etc.
+addAttr -ln "Tilt"  -at double  -min -1 -max 1 -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.Tilt");
+addAttr -ln "HeelRoll"  -at double  -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.HeelRoll");
+addAttr -ln "BallRoll"  -at double  -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.BallRoll");
+addAttr -ln "ToeRoll"  -at double  -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.ToeRoll");
+addAttr -ln "HeelPivot"  -at double  ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.HeelPivot");
+addAttr -ln "BallPivot"  -at double  -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.BallPivot");
+addAttr -ln "ToePivot"  -at double  -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.ToePivot");
+
+addAttr -ln "IK_KneeSnap"  -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.IK_KneeSnap");
+addAttr -ln "Stretchy"  -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.Stretchy");
+addAttr -ln "Show_Offset"  -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_IK_foot_control");
+setAttr -e-keyable true ($R_or_L + "_IK_foot_control.Show_Offset");
+
+//# Connect up locators to the foot control attributes
+connectAttr -f ($R_or_L + "_IK_foot_control.HeelRoll") ($R_or_L + "_IK_heel_locator.rotateX");
+connectAttr -f ($R_or_L + "_IK_foot_control.HeelPivot") ($R_or_L + "_IK_heel_locator.rotateY");
+connectAttr -f ($R_or_L + "_IK_foot_control.BallRoll") ($R_or_L + "_IK_ball_locator.rotateX");
+connectAttr -f ($R_or_L + "_IK_foot_control.BallPivot") ($R_or_L + "_IK_ball_locator.rotateY");
+connectAttr -f ($R_or_L + "_IK_foot_control.ToeRoll") ($R_or_L + "_IK_toe_locator.rotateX");
+connectAttr -f ($R_or_L + "_IK_foot_control.ToePivot") ($R_or_L + "_IK_toe_locator.rotateY");
+connectAttr -f ($R_or_L + "_IK_foot_control.Show_Offset") ($R_or_L + "_IK_foot_offset_controlShape.visibility");
+
+//# Set foot tilting keys
+setDrivenKeyframe -currentDriver ($R_or_L + "_IK_foot_control.Tilt") ($R_or_L + "_IK_heel_outer_locator.rotateZ");
+setDrivenKeyframe -currentDriver ($R_or_L + "_IK_foot_control.Tilt") ($R_or_L + "_IK_heel_inner_locator.rotateZ");
+
+select -r ($R_or_L + "_IK_foot_control");
+setAttr ($R_or_L + "_IK_foot_control.Tilt") 1;
+select -r ($R_or_L + "_IK_heel_outer_locator");
+setAttr ($R_or_L + "_IK_heel_outer_locator.rotateZ") 60;
+setDrivenKeyframe -currentDriver ($R_or_L + "_IK_foot_control.Tilt") ($R_or_L + "_IK_heel_outer_locator.rotateZ");
+setDrivenKeyframe -currentDriver ($R_or_L + "_IK_foot_control.Tilt") ($R_or_L + "_IK_heel_inner_locator.rotateZ");
+
+select -r ($R_or_L + "_IK_foot_control");
+setAttr ($R_or_L + "_IK_foot_control.Tilt") -1;
+select -r ($R_or_L + "_IK_heel_inner_locator");
+setAttr ($R_or_L + "_IK_heel_inner_locator.rotateZ") -60;
+setDrivenKeyframe -currentDriver ($R_or_L + "_IK_foot_control.Tilt") ($R_or_L + "_IK_heel_outer_locator.rotateZ");
+setDrivenKeyframe -currentDriver ($R_or_L + "_IK_foot_control.Tilt") ($R_or_L + "_IK_heel_inner_locator.rotateZ");
+
+select -r ($R_or_L + "_IK_foot_control");
+setAttr ($R_or_L + "_IK_foot_control.Tilt") 0;
+
+//# lock and hide rotation, scale, visibility attributes for knee control
+setAttr -lock true ($IK_leg_rename + "_knee_control.sx");
+setAttr -lock true ($IK_leg_rename + "_knee_control.sy");
+setAttr -lock true ($IK_leg_rename + "_knee_control.sz");
+setAttr -lock true ($IK_leg_rename + "_knee_control.v");
+
+//# Add IK FK switch attribute to the IK FK switch box shape control
+addAttr -ln "IKFKswitch" -nn "IK / FK switch" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_IK_FK_switch");
+setAttr -e-keyable true ($R_or_L + "_IK_FK_switch.IKFKswitch");
+
+
+//# Create a blend node and connect translation and rotation attributes from IK / FK legs to the Base leg
+
+shadingNode -asUtility condition -name ($R_or_L + "_leg_vis_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_IK_foot_control.visibility");
+
+setAttr ($R_or_L + "_leg_vis_IKFKswitch.colorIfTrueR") 1;
+setAttr ($R_or_L + "_leg_vis_IKFKswitch.colorIfFalseR") 0;
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_leg_vis_IKFKswitch.firstTerm");
+connectAttr -f ($R_or_L + "_leg_vis_IKFKswitch.outColorR") ($R_or_L + "_FK_leg_control.visibility");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_leg_trans_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_leg_trans_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_leg.translate") ($R_or_L + "_leg_trans_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_leg.translate") ($R_or_L + "_leg_trans_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_leg_trans_IKFKswitch.output") ($R_or_L + "_base_leg.translate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_leg_rot_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_leg_rot_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_leg.rotate") ($R_or_L + "_leg_rot_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_leg.rotate") ($R_or_L + "_leg_rot_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_leg_rot_IKFKswitch.output") ($R_or_L + "_base_leg.rotate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_shin_trans_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_shin_trans_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_shin.translate") ($R_or_L + "_shin_trans_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_shin.translate") ($R_or_L + "_shin_trans_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_shin_trans_IKFKswitch.output") ($R_or_L + "_base_shin.translate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_shin_rot_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_shin_rot_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_shin.rotate") ($R_or_L + "_shin_rot_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_shin.rotate") ($R_or_L + "_shin_rot_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_shin_rot_IKFKswitch.output") ($R_or_L + "_base_shin.rotate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_heel_trans_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_heel_trans_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_heel.translate") ($R_or_L + "_heel_trans_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_heel.translate") ($R_or_L + "_heel_trans_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_heel_trans_IKFKswitch.output") ($R_or_L + "_base_heel.translate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_heel_rot_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_heel_rot_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_heel.rotate") ($R_or_L + "_heel_rot_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_heel.rotate") ($R_or_L + "_heel_rot_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_heel_rot_IKFKswitch.output") ($R_or_L + "_base_heel.rotate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_toe_trans_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_toe_trans_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_toe.translate") ($R_or_L + "_toe_trans_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_toe.translate") ($R_or_L + "_toe_trans_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_toe_trans_IKFKswitch.output") ($R_or_L + "_base_toe.translate");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_toe_rot_IKFKswitch");
+connectAttr -f ($R_or_L + "_IK_FK_switch.IKFKswitch") ($R_or_L + "_toe_rot_IKFKswitch.blender");
+connectAttr -f ($R_or_L + "_FK_toe.rotate") ($R_or_L + "_toe_rot_IKFKswitch.color2");
+connectAttr -f ($R_or_L + "_IK_toe.rotate") ($R_or_L + "_toe_rot_IKFKswitch.color1");
+connectAttr -f ($R_or_L + "_toe_rot_IKFKswitch.output") ($R_or_L + "_base_toe.rotate");
+
+//# Create measurement tool for kneesnap and stretchy measurements. First creates the 'locators' of leg, knee and ankle for them to hook into
+
+//# locators for IK
+spaceLocator -p 0 0 0 -n ($R_or_L + "_IK_leg_locator");
+float $locator_coordinates[] = `xform -q -piv -ws ($R_or_L + "_IK_leg")`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+//# select -tgl ($R_or_L + "_IK_leg");
+//# parent;
+spaceLocator -p 0 0 0 -n ($R_or_L + "_IK_shin_locator");
+float $locator_coordinates[] = `xform -q -piv -ws ($R_or_L + "_IK_shin")`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -tgl ($R_or_L + "_IK_shin");
+parent;
+spaceLocator -p 0 0 0 -n ($R_or_L + "_IK_leg_knee_control_locator");
+float $locator_coordinates[] = `xform -q -piv -ws ($R_or_L + "_IK_leg_knee_control")`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -tgl ($R_or_L + "_IK_leg_knee_control");
+parent;
+spaceLocator -p 0 0 0 -n ($R_or_L + "_IK_STRETCHY_heel_locator");
+float $locator_coordinates[] = `xform -q -piv -ws ($R_or_L + "_IK_heel")`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -tgl ($R_or_L + "_IK_foot_control");
+parent;
+
+
+//# measurement for stretchy
+shadingNode -asUtility distanceBetween -name ($R_or_L + "_leg_to_heel_distance");
+connectAttr -f ($R_or_L + "_IK_leg_locatorShape.worldPosition[0]") ($R_or_L + "_leg_to_heel_distance.point1");
+connectAttr -f ($R_or_L + "_IK_STRETCHY_heel_locatorShape.worldPosition[0]") ($R_or_L + "_leg_to_heel_distance.point2");
+
+//# measurement for IK kneesnap
+shadingNode -asUtility distanceBetween -name ($R_or_L + "_leg_to_knee_distance");
+connectAttr -f ($R_or_L + "_IK_leg_locatorShape.worldPosition[0]") ($R_or_L + "_leg_to_knee_distance.point1");
+connectAttr -f ($R_or_L + "_IK_leg_knee_control_locatorShape.worldPosition[0]") ($R_or_L + "_leg_to_knee_distance.point2");
+
+shadingNode -asUtility distanceBetween -name ($R_or_L + "_knee_to_heel_distance");
+connectAttr -f ($R_or_L + "_IK_leg_knee_control_locatorShape.worldPosition[0]") ($R_or_L + "_knee_to_heel_distance.point1");
+connectAttr -f ($R_or_L + "_IK_STRETCHY_heel_locatorShape.worldPosition[0]") ($R_or_L + "_knee_to_heel_distance.point2");
+
+//# store original measurements of this
+float $leg_to_knee_original_distance = `getAttr ($R_or_L + "_leg_to_knee_distance.distance")`;
+float $knee_to_heel_original_distance = `getAttr ($R_or_L + "_knee_to_heel_distance.distance")`;
+float $leg_to_heel_original_distance = `getAttr ($R_or_L + "_leg_to_heel_distance.distance")`;
+//# also store original values of the leg
+float $original_IK_shin = `getAttr ($R_or_L + "_IK_shin.translateY")`;
+float $original_IK_heel = `getAttr ($R_or_L + "_IK_heel.translateY")`;
+float $shin_and_heel_totalValue = $original_IK_shin + $original_IK_heel;
+
+//# Create stretchy nodes
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_shin_stretchy_divide");
+//# make sure it is set to divide, the default is multiply which is wrong.
+setAttr ($R_or_L + "_shin_stretchy_divide.operation") 2;
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_shin_stretchy_multiply");
+shadingNode -asUtility blendColors -name ($R_or_L + "_shin_stretchy_choice");
+shadingNode -asUtility condition -name ($R_or_L + "_shin_stretchy_limiter");
+//# change limiter operation
+setAttr ($R_or_L + "_shin_stretchy_limiter.operation") 2;
+
+//# connection STRETCHY nodes in order of use
+connectAttr -f ($R_or_L + "_leg_to_heel_distance.distance") ($R_or_L + "_shin_stretchy_divide.input1Y");
+setAttr ($R_or_L + "_shin_stretchy_divide.input2Y") $shin_and_heel_totalValue;
+
+connectAttr -f ($R_or_L + "_shin_stretchy_divide.outputY") ($R_or_L + "_shin_stretchy_multiply.input1Y");
+setAttr ($R_or_L + "_shin_stretchy_multiply.input2Y") $original_IK_shin;
+
+setAttr ($R_or_L + "_shin_stretchy_choice.color2G")  $original_IK_shin;
+connectAttr -f ($R_or_L + "_shin_stretchy_multiply.outputY") ($R_or_L + "_shin_stretchy_choice.color1G");
+connectAttr -f ($R_or_L + "_IK_foot_control.Stretchy") ($R_or_L + "_shin_stretchy_choice.blender");
+
+connectAttr -f ($R_or_L + "_shin_stretchy_choice.outputG") ($R_or_L + "_shin_stretchy_limiter.colorIfTrueG");
+setAttr ($R_or_L + "_shin_stretchy_limiter.colorIfFalseG") $original_IK_shin;   
+connectAttr -f ($R_or_L + "_shin_stretchy_choice.outputG") ($R_or_L + "_shin_stretchy_limiter.firstTerm");
+setAttr ($R_or_L + "_shin_stretchy_limiter.secondTerm") $original_IK_shin;;
+
+//# Create kneesnap choice nodes
+//# nodes in order of use
+shadingNode -asUtility blendColors -name ($R_or_L + "_shin_kneeSnap_choice");
+
+//# connections in order of use SHIN Y TRANSLATION CHAIN FIRST
+
+connectAttr -f ($R_or_L + "_shin_stretchy_limiter.outColorG") ($R_or_L + "_shin_kneeSnap_choice.color2G");
+connectAttr -f ($R_or_L + "_leg_to_knee_distance.distance") ($R_or_L + "_shin_kneeSnap_choice.color1G");
+connectAttr -f ($R_or_L + "_IK_foot_control.IK_KneeSnap") ($R_or_L + "_shin_kneeSnap_choice.blender");
+
+//# finally connect it to the leg!
+
+connectAttr -f ($R_or_L + "_shin_kneeSnap_choice.outputG") ($R_or_L + "_IK_shin.translateY");
+
+//# NOW DUPLICATE IT ALL OVER AGAIN FOR THE HEEL!
+//# NOW DUPLICATE IT ALL OVER AGAIN FOR THE HEEL!
+//# NOW DUPLICATE IT ALL OVER AGAIN FOR THE HEEL!
+
+//# Create stretchy nodes
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_heel_stretchy_divide");
+//# make sure it is set to divide, the default is multiply which is wrong.
+setAttr ($R_or_L + "_heel_stretchy_divide.operation") 2;
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_heel_stretchy_multiply");
+shadingNode -asUtility blendColors -name ($R_or_L + "_heel_stretchy_choice");
+shadingNode -asUtility condition -name ($R_or_L + "_heel_stretchy_limiter");
+//# change limiter operation
+setAttr ($R_or_L + "_heel_stretchy_limiter.operation") 2;
+
+//# connection STRETCHY nodes in order of use
+connectAttr -f ($R_or_L + "_leg_to_heel_distance.distance") ($R_or_L + "_heel_stretchy_divide.input1Y");
+setAttr ($R_or_L + "_heel_stretchy_divide.input2Y") $shin_and_heel_totalValue;
+
+connectAttr -f ($R_or_L + "_heel_stretchy_divide.outputY") ($R_or_L + "_heel_stretchy_multiply.input1Y");
+setAttr ($R_or_L + "_heel_stretchy_multiply.input2Y") $original_IK_heel;
+
+setAttr ($R_or_L + "_heel_stretchy_choice.color2G")  $original_IK_heel;
+connectAttr -f ($R_or_L + "_heel_stretchy_multiply.outputY") ($R_or_L + "_heel_stretchy_choice.color1G");
+connectAttr -f ($R_or_L + "_IK_foot_control.Stretchy") ($R_or_L + "_heel_stretchy_choice.blender");
+
+connectAttr -f ($R_or_L + "_heel_stretchy_choice.outputG") ($R_or_L + "_heel_stretchy_limiter.colorIfTrueG");
+setAttr ($R_or_L + "_heel_stretchy_limiter.colorIfFalseG") $original_IK_heel;
+connectAttr -f ($R_or_L + "_heel_stretchy_choice.outputG") ($R_or_L + "_heel_stretchy_limiter.firstTerm");
+setAttr ($R_or_L + "_heel_stretchy_limiter.secondTerm") $original_IK_heel;;
+
+//# Create kneesnap choice nodes
+//# nodes in order of use
+shadingNode -asUtility blendColors -name ($R_or_L + "_heel_kneeSnap_choice");
+
+//# connections in order of use heel Y TRANSLATION CHAIN FIRST
+
+connectAttr -f ($R_or_L + "_heel_stretchy_limiter.outColorG") ($R_or_L + "_heel_kneeSnap_choice.color2G");
+connectAttr -f ($R_or_L + "_knee_to_heel_distance.distance") ($R_or_L + "_heel_kneeSnap_choice.color1G");
+connectAttr -f ($R_or_L + "_IK_foot_control.IK_KneeSnap") ($R_or_L + "_heel_kneeSnap_choice.blender");
+
+//# finally connect it to the leg!
+
+connectAttr -f ($R_or_L + "_heel_kneeSnap_choice.outputG") ($R_or_L + "_IK_heel.translateY");
+
+
