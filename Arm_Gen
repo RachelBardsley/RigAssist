@@ -335,8 +335,8 @@ connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_arm_switc
 setAttr ($R_or_L + "_arm_switch_follow.colorIfTrueR") 1;
 setAttr ($R_or_L + "_arm_switch_follow.colorIfFalseR") 0;
 
-connectAttr -f ($R_or_L + "_arm_switch_follow.outColorR") ($R_or_L + "_IK_FK_arm_switch_parentConstraint1.L_FK_wrist_controlW1") ;
-connectAttr -f ($R_or_L + "_arm_switch_follow.outColorG") ($R_or_L + "_IK_FK_arm_switch_parentConstraint1.L_IK_wrist_controlW0");
+connectAttr -f ($R_or_L + "_arm_switch_follow.outColorR") ($R_or_L + "_IK_FK_arm_switch_parentConstraint1." + $R_or_L + "_FK_wrist_controlW1") ;
+connectAttr -f ($R_or_L + "_arm_switch_follow.outColorG") ($R_or_L + "_IK_FK_arm_switch_parentConstraint1." + $R_or_L + "_IK_wrist_controlW0");
 
 
 
@@ -475,3 +475,13 @@ connectAttr -f ($R_or_L + "_IK_wrist_control.IK_elbowSnap") ($R_or_L + "_wrist_e
 //# finally connect it to the leg!
 
 connectAttr -f ($R_or_L + "_wrist_elbowSnap_choice.outputG") ($R_or_L + "_IK_wrist.translateY");
+
+//# Hide all locators
+setAttr ($R_or_L + "_IK_STRETCHY_wrist_locator.visibility") 0;
+setAttr ($R_or_L + "_elbow_control_locator.visibility") 0;
+setAttr ($R_or_L + "_IK_forearm_locator.visibility") 0;
+//# Hide the FK and IK set of bones for tidiness
+setAttr ($R_or_L + "_IK_arm.visibility") 0;
+setAttr ($R_or_L + "_FK_arm.visibility") 0;
+setAttr ($R_or_L + "_twister_arm.visibility") 0;
+setAttr ($R_or_L + "_IK_arm_ikHandle.visibility") 0;
