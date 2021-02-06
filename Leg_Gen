@@ -512,4 +512,10 @@ connectAttr -f ($R_or_L + "_IK_foot_control.IK_KneeSnap") ($R_or_L + "_heel_knee
 
 connectAttr -f ($R_or_L + "_heel_kneeSnap_choice.outputG") ($R_or_L + "_IK_heel.translateY");
 
-
+//# Hide all locators
+setAttr ($R_or_L + "_IK_leg_locator.visibility") 0;
+setAttr ($R_or_L + "_IK_leg_knee_control_locator.visibility") 0;
+setAttr ($R_or_L + "_IK_STRETCHY_heel_locator.visibility") 0;
+//# Hide the FK and IK set of bones for tidiness
+setAttr ($R_or_L + "_IK_leg.visibility") 0;
+setAttr ($R_or_L + "_FK_leg.visibility") 0;
