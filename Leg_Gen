@@ -3,6 +3,11 @@ string $leg_duplicate[] = `ls -sl`;
 //#determine if L or R 
 string $R_or_L = `substring $FK_leg[0] 0 1`;
 
+select -r ($R_or_L + "_base_leg");
+joint -e  -oj yzx -secondaryAxisOrient xup -ch -zso;
+select -r ($R_or_L + "_base_toe");
+joint -e  -oj none -ch -zso;
+
 //# create FK leg copy
 duplicate -rr;
 searchReplaceNames "base" "FK" "hierarchy";
