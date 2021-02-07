@@ -1,0 +1,141 @@
+string $spine_duplicate[] = `ls -sl`;
+
+//#determine if L or R - in the case of the spine, it is just M for middle.
+string $R_or_L = `substring $FK_spine[0] 1 1`;
+
+//# Orient joints check
+select $spine_duplicate[0];
+joint -e  -oj xyz -secondaryAxisOrient zup -ch -zso;
+
+//# create IK arm copy
+select $spine_duplicate[0];
+duplicate -rr;
+searchReplaceNames "base" "IK" "hierarchy";
+string $IK_spine[] = `ls -sl`;
+int $namelen = `size $IK_spine[0]` - 1;
+string $IK_spine_rename = `substring $IK_spine[0] 0 $namelen`;
+rename $IK_spine[0] $IK_spine_rename;
+
+//# create the extra twist joints in the spine
+//# First we need the length of the spine divided by 2
+float $spine_lengthvalue = `getAttr ($R_or_L + "_base_chest.translateX")`;
+$spine_insert_lengthvalue = $spine_lengthvalue/6;
+//# Now create joints and move it by that value.
+insertJoint ($R_or_L + "_base_hips");
+rename ($R_or_L + "_base_spine_B");
+setAttr ($R_or_L + "_base_spine_B.translateX") $spine_insert_lengthvalue;
+
+insertJoint ($R_or_L + "_base_spine_B");
+rename ($R_or_L + "_base_spine_C");
+setAttr ($R_or_L + "_base_spine_C.translateX") $spine_insert_lengthvalue;
+
+insertJoint ($R_or_L + "_base_spine_C");
+rename ($R_or_L + "_base_spine_D");
+setAttr ($R_or_L + "_base_spine_D.translateX") $spine_insert_lengthvalue;
+
+insertJoint ($R_or_L + "_base_spine_D");
+rename ($R_or_L + "_base_spine_E");
+setAttr ($R_or_L + "_base_spine_E.translateX") $spine_insert_lengthvalue;
+
+insertJoint ($R_or_L + "_base_spine_E");
+rename ($R_or_L + "_base_spine_F");
+setAttr ($R_or_L + "_base_spine_F.translateX") $spine_insert_lengthvalue;
+
+setAttr ($R_or_L + "_base_chest.translateX") $spine_insert_lengthvalue;
+
+//# Unparent the IK chest from the IK hips, we need them separate to do a skin bind
+select -r ($R_or_L + "_IK_chest");
+select -tgl spine_group;
+parent;
+
+//# Add IK spline handle
+select -r ($R_or_L + "_base_hips");
+select -add ($R_or_L + "_base_chest");
+$spine_ikHandle = `ikHandle -sol ikSplineSolver`;
+rename $spine_ikHandle[0] ($R_or_L + "_IK_spine_ikHandle");
+rename $spine_ikHandle[1] ($R_or_L + "_IK_spine_effector");
+rename $spine_ikHandle[2] ($R_or_L + "_IK_spine_curve");
+
+//# generates a curveInfo node for the curve
+select -r ($R_or_L + "_IK_spine_curve");
+string $IK_spine_curveinfo = `arclen -ch 1 ($R_or_L + "_IK_spine_curve")`;
+select -cl;
+
+//# Do the skin bind
+select -r M_IK_hips ;
+select -add M_IK_chest ;
+select -add M_IK_spine_curve ;
+SmoothBindSkin -bcp -tsb;
+
+//# Create controls for chest and hips
+select custom_chest_shape;
+duplicate -rr;
+string $tempChestContro1_1[] = `ls -sl`;
+group -em -n ($R_or_L + "_custom_chest_pivotgroup");
+select -r ($tempChestContro1_1[0] + "Shape");
+select -tgl ($R_or_L + "_custom_chest_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_custom_chest_pivotgroup");
+select -tgl ($R_or_L + "_IK_chest");
+parent -r -s;
+parent -w;
+
+rename $tempChestContro1_1 ($R_or_L + "_IK_chest_control");
+
+select -r ($R_or_L + "_IK_chest_control");
+select -tgl ($R_or_L + "_IK_chest");
+parentConstraint -mo -weight 1;
+
+select custom_hips_shape;
+duplicate -rr;
+string $tempHipsContro1_1[] = `ls -sl`;
+group -em -n ($R_or_L + "_custom_hips_pivotgroup");
+select -r ($tempHipsContro1_1[0] + "Shape");
+select -tgl ($R_or_L + "_custom_hips_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_custom_hips_pivotgroup");
+select -tgl ($R_or_L + "_IK_hips");
+parent -r -s;
+parent -w;
+
+rename $tempHipsContro1_1 ($R_or_L + "_IK_hips_control");
+
+select -r ($R_or_L + "_IK_hips_control");
+select -tgl ($R_or_L + "_IK_hips");
+parentConstraint -mo -weight 1;
+
+
+//# Add a choice for stretchiness!
+addAttr -ln "StretchySpineSwitch" -nn "_Stretchy Spine" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_IK_chest_control");
+setAttr -e-keyable true ($R_or_L + "_IK_chest_control.StretchySpineSwitch");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_StretchySpineChoice");
+connectAttr -f ($R_or_L + "_IK_chest_control.StretchySpineSwitch")($R_or_L + "_StretchySpineChoice.blender");
+
+//# Find spine length
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_IK_spine_curve_length");
+setAttr ($R_or_L + "_IK_spine_curve_length.operation") 2;
+setAttr ($R_or_L + "_IK_spine_curve_length.input2X") 6;
+connectAttr -f ($IK_spine_curveinfo + ".arcLength")($R_or_L + "_IK_spine_curve_length.input1X");
+
+float $staticspine = `getAttr ($IK_spine_curveinfo + ".arcLength")`;
+
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_IK_spine_curve_static_length");
+setAttr ($R_or_L + "_IK_spine_curve_static_length.operation") 2;
+setAttr ($R_or_L + "_IK_spine_curve_static_length.input2X") 6;
+setAttr ($R_or_L + "_IK_spine_curve_static_length.input1X")$staticspine;
+
+connectAttr -f ($R_or_L + "_IK_spine_curve_length.outputX")($R_or_L + "_StretchySpineChoice.color1.color1R");
+connectAttr -f ($R_or_L + "_IK_spine_curve_static_length.outputX")($R_or_L + "_StretchySpineChoice.color2.color2R");
+
+connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine_B.translateX");
+connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine_C.translateX");
+connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine_D.translateX");
+connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine_E.translateX");
+connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine_F.translateX");
+connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_chest.translateX");
+
+
+
