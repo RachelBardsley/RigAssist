@@ -173,9 +173,9 @@ select -cl;
 
 //# Create a seperate group to separate hips/chest from the cog, but allow them to be constrained together.
 group -em -name ($R_or_L + "_hips_and_chest_pivotgroup");
-select -r ($R_or_L + "_IK_hips_control");
-select -tgl ($R_or_L + "_IK_chest_control");
-select -tgl ($R_or_L + "_hips_and_chest_pivotgroup");
+select -r ($R_or_L + "_custom_chest_pivotgroup");
+select -add ($R_or_L + "_custom_hips_pivotgroup");
+select -add ($R_or_L + "_hips_and_chest_pivotgroup");
 parent;
 
 select -r ($R_or_L + "_COGC_control");
@@ -184,9 +184,7 @@ parent;
 select -r ($R_or_L + "_COGB_control");
 select -tgl ($R_or_L + "_COGA_control");
 parent;
-select -r ($R_or_L + "_custom_hips_pivotgroup");
-select -tgl ($R_or_L + "_COGC_control");
-parent;
+
 select -cl;
 
 select -r ($R_or_L + "_COGC_control");
