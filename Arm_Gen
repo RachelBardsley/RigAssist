@@ -157,7 +157,7 @@ select -r ($R_or_L + "_IK_FK_arm_switch");
 select -tgl ($R_or_L + "_base_wrist");
 parent -r -s;
 select -r ($R_or_L + "_IK_FK_arm_switch");
-move -r -os -wd -5 0 0 ;
+move -r -os -wd 0 5 0 ;
 select -cl;
 
 select -cl  ;
@@ -216,22 +216,22 @@ string $twister_arm_list[] = `ls -sl`;
 
 //# create the extra twist joints in the BASE arm (for the 'twister' arm to twist.) Do not add extra joints to the twister arm.
 //# First we need the length of the forearm divided by 3
-float $forearm_lengthvalue = `getAttr ($R_or_L + "_base_wrist.translateY")`;
+float $forearm_lengthvalue = `getAttr ($R_or_L + "_base_wrist.translateX")`;
 $forearm_lengthvalue = $forearm_lengthvalue/4;
 //# Now create joints and move it by that value.
 insertJoint ($R_or_L + "_base_forearm");
 rename ($R_or_L + "_base_twist1");
-setAttr ($R_or_L + "_base_twist1.translateY") $forearm_lengthvalue;
+setAttr ($R_or_L + "_base_twist1.translateX") $forearm_lengthvalue;
 
 insertJoint ($R_or_L + "_base_twist1");
 rename ($R_or_L + "_base_twist2");
-setAttr ($R_or_L + "_base_twist2.translateY") $forearm_lengthvalue;
+setAttr ($R_or_L + "_base_twist2.translateX") $forearm_lengthvalue;
 
 insertJoint ($R_or_L + "_base_twist2");
 rename ($R_or_L + "_base_twist3");
-setAttr ($R_or_L + "_base_twist3.translateY") $forearm_lengthvalue;
+setAttr ($R_or_L + "_base_twist3.translateX") $forearm_lengthvalue;
 
-setAttr ($R_or_L + "_base_wrist.translateY") $forearm_lengthvalue;
+setAttr ($R_or_L + "_base_wrist.translateX") $forearm_lengthvalue;
 
 
 //# Create IK spline handle for the base arm twist joints - no longer needed, not using skin bind 
@@ -247,75 +247,119 @@ connectAttr -f ($R_or_L + "_twister_forearm.translate") ($R_or_L + "_base_forear
 //# This will convert the forearm length into the 4 cut up lengths for a nice 'twist'
 shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_length");
 setAttr ($R_or_L + "_twistingPieces_length.operation") 2;
-setAttr ($R_or_L + "_twistingPieces_length.input2Y") 4;
+setAttr ($R_or_L + "_twistingPieces_length.input2X") 4;
 
 connectAttr -f ($R_or_L + "_twister_wrist.translate") ($R_or_L + "_twistingPieces_length.input1");
-connectAttr -f ($R_or_L + "_twistingPieces_length.outputY") ($R_or_L + "_base_twist1.translateY");
-connectAttr -f ($R_or_L + "_twistingPieces_length.outputY") ($R_or_L + "_base_twist2.translateY");
-connectAttr -f ($R_or_L + "_twistingPieces_length.outputY") ($R_or_L + "_base_twist3.translateY");
-connectAttr -f ($R_or_L + "_twistingPieces_length.outputY") ($R_or_L + "_base_wrist.translateY");
+connectAttr -f ($R_or_L + "_twistingPieces_length.outputX") ($R_or_L + "_base_twist1.translateX");
+connectAttr -f ($R_or_L + "_twistingPieces_length.outputX") ($R_or_L + "_base_twist2.translateX");
+connectAttr -f ($R_or_L + "_twistingPieces_length.outputX") ($R_or_L + "_base_twist3.translateX");
+connectAttr -f ($R_or_L + "_twistingPieces_length.outputX") ($R_or_L + "_base_wrist.translateX");
+
+
+//# HERE
 
 //# This will connect the wrist control to rotate the IK arm... convert the wrist rotation into 4 more rotations. Arms twist more at the wrist, less at the elbow.
 //# Because the wrist and offset wrist will both need to rotate, we need to combine both rotate Y values. Otherwise, only one of them will control the rotateY twist.
 shadingNode -asUtility addDoubleLinear -name ($R_or_L + "_twistingPieces_addup_wrist");
-shadingNode -asUtility addDoubleLinear -name ($R_or_L + "_twistingPieces_addup3");
-shadingNode -asUtility addDoubleLinear -name ($R_or_L + "_twistingPieces_addup2");
 shadingNode -asUtility addDoubleLinear -name ($R_or_L + "_twistingPieces_addup1");
-
-//# First wrist
-connectAttr -f ($R_or_L + "_IK_wrist_offset_control.rotateY") ($R_or_L + "_twistingPieces_addup_wrist.input1");
-
-//# Twist3 (above the wrist) using 1/2 of the wrist rotation
-shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_offset_rotatetwist3");
-setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist3.operation") 2;
-setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist3.input2Y") 2;
-connectAttr -f ($R_or_L + "_IK_wrist_offset_control.rotate") ($R_or_L + "_twistingPieces_offset_rotatetwist3.input1");
-connectAttr -f ($R_or_L + "_twistingPieces_offset_rotatetwist3.outputY") ($R_or_L + "_twistingPieces_addup3.input1");
-
-//# Twist2 using 1/2 of the twist3 rotation
-shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_offset_rotatetwist2");
-setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist2.operation") 2;
-setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist2.input2Y") 4;
-connectAttr -f ($R_or_L + "_IK_wrist_offset_control.rotate") ($R_or_L + "_twistingPieces_offset_rotatetwist2.input1");
-connectAttr -f ($R_or_L + "_twistingPieces_offset_rotatetwist2.outputY") ($R_or_L + "_twistingPieces_addup2.input1");
-
-//# Twist1 using 1/2 of the twist2 rotation
-shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_offset_rotatetwist1");
-setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist1.operation") 2;
-setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist1.input2Y") 6;
-connectAttr -f ($R_or_L + "_IK_wrist_offset_control.rotate") ($R_or_L + "_twistingPieces_offset_rotatetwist1.input1");
-connectAttr -f ($R_or_L + "_twistingPieces_offset_rotatetwist1.outputY") ($R_or_L + "_twistingPieces_addup1.input1");
-
+shadingNode -asUtility addDoubleLinear -name ($R_or_L + "_twistingPieces_addup2");
+shadingNode -asUtility addDoubleLinear -name ($R_or_L + "_twistingPieces_addup3");
+//# IK FK switch blender
+shadingNode -asUtility blendColors -name ($R_or_L + "_IKFK_switch_forearm_twist_wrist") ;
+shadingNode -asUtility blendColors -name ($R_or_L + "_IKFK_switch_forearm_twist1") ;
+shadingNode -asUtility blendColors -name ($R_or_L + "_IKFK_switch_forearm_twist2") ;
+shadingNode -asUtility blendColors -name ($R_or_L + "_IKFK_switch_forearm_twist3") ;
 
 //# First wrist - repeat everything above for the non-offset wrist control
-connectAttr -f ($R_or_L + "_IK_wrist_control.rotateY") ($R_or_L + "_twistingPieces_addup_wrist.input2");
+connectAttr -f ($R_or_L + "_IK_wrist_control.rotateX") ($R_or_L + "_twistingPieces_addup_wrist.input1");
 
 //# Twist3 (above the wrist) using 1/2 of the wrist rotation
 shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_rotatetwist3");
 setAttr ($R_or_L + "_twistingPieces_rotatetwist3.operation") 2;
-setAttr ($R_or_L + "_twistingPieces_rotatetwist3.input2Y") 2;
+setAttr ($R_or_L + "_twistingPieces_rotatetwist3.input2X") 2;
 connectAttr -f ($R_or_L + "_IK_wrist_control.rotate") ($R_or_L + "_twistingPieces_rotatetwist3.input1");
-connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist3.outputY") ($R_or_L + "_twistingPieces_addup3.input2");
+connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist3.outputX") ($R_or_L + "_twistingPieces_addup3.input1");
 
 //# Twist2 using 1/2 of the twist3 rotation
 shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_rotatetwist2");
 setAttr ($R_or_L + "_twistingPieces_rotatetwist2.operation") 2;
-setAttr ($R_or_L + "_twistingPieces_rotatetwist2.input2Y") 4;
+setAttr ($R_or_L + "_twistingPieces_rotatetwist2.input2X") 4;
 connectAttr -f ($R_or_L + "_IK_wrist_control.rotate") ($R_or_L + "_twistingPieces_rotatetwist2.input1");
-connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist2.outputY") ($R_or_L + "_twistingPieces_addup2.input2");
+connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist2.outputX") ($R_or_L + "_twistingPieces_addup2.input1");
 
 //# Twist1 using 1/2 of the twist2 rotation
 shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_rotatetwist1");
 setAttr ($R_or_L + "_twistingPieces_rotatetwist1.operation") 2;
-setAttr ($R_or_L + "_twistingPieces_rotatetwist1.input2Y") 6;
+setAttr ($R_or_L + "_twistingPieces_rotatetwist1.input2X") 6;
 connectAttr -f ($R_or_L + "_IK_wrist_control.rotate") ($R_or_L + "_twistingPieces_rotatetwist1.input1");
-connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist1.outputY") ($R_or_L + "_twistingPieces_addup1.input2");
+connectAttr -f ($R_or_L + "_twistingPieces_rotatetwist1.outputX") ($R_or_L + "_twistingPieces_addup1.input1");
 
-//# Now to combine and connect to the base twist joints!
-connectAttr -f ($R_or_L + "_twistingPieces_addup_wrist.output") ($R_or_L + "_base_wrist.rotateY");
-connectAttr -f ($R_or_L + "_twistingPieces_addup3.output") ($R_or_L + "_base_twist3.rotateY");
-connectAttr -f ($R_or_L + "_twistingPieces_addup2.output") ($R_or_L + "_base_twist2.rotateY");
-connectAttr -f ($R_or_L + "_twistingPieces_addup1.output") ($R_or_L + "_base_twist1.rotateY");
+
+//# First wrist
+connectAttr -f ($R_or_L + "_IK_wrist_offset_control.rotateX") ($R_or_L + "_twistingPieces_addup_wrist.input2");
+
+//# Twist3 (above the wrist) using 1/2 of the wrist rotation
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_offset_rotatetwist3");
+setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist3.operation") 2;
+setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist3.input2X") 2;
+connectAttr -f ($R_or_L + "_IK_wrist_offset_control.rotate") ($R_or_L + "_twistingPieces_offset_rotatetwist3.input1");
+connectAttr -f ($R_or_L + "_twistingPieces_offset_rotatetwist3.outputX") ($R_or_L + "_twistingPieces_addup3.input2");
+
+//# Twist2 using 1/2 of the twist3 rotation
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_offset_rotatetwist2");
+setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist2.operation") 2;
+setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist2.input2X") 4;
+connectAttr -f ($R_or_L + "_IK_wrist_offset_control.rotate") ($R_or_L + "_twistingPieces_offset_rotatetwist2.input1");
+connectAttr -f ($R_or_L + "_twistingPieces_offset_rotatetwist2.outputX") ($R_or_L + "_twistingPieces_addup2.input2");
+
+//# Twist1 using 1/2 of the twist2 rotation
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistingPieces_offset_rotatetwist1");
+setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist1.operation") 2;
+setAttr ($R_or_L + "_twistingPieces_offset_rotatetwist1.input2X") 6;
+connectAttr -f ($R_or_L + "_IK_wrist_offset_control.rotate") ($R_or_L + "_twistingPieces_offset_rotatetwist1.input1");
+connectAttr -f ($R_or_L + "_twistingPieces_offset_rotatetwist1.outputX") ($R_or_L + "_twistingPieces_addup1.input2");
+
+
+
+//# FORGOT TO DO THE SAME THING WITH FK twisting! 
+//# First wrist - repeat everything above for the non-offset wrist control
+
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_FK_twistingPieces_twist1");
+setAttr ($R_or_L + "_FK_twistingPieces_twist1.operation") 2;
+setAttr ($R_or_L + "_FK_twistingPieces_twist1.input2X") 2;
+connectAttr -f ($R_or_L + "_FK_wrist_control.rotate") ($R_or_L + "_FK_twistingPieces_twist1.input1");
+
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_FK_twistingPieces_twist2");
+setAttr ($R_or_L + "_FK_twistingPieces_twist2.operation") 2;
+setAttr ($R_or_L + "_FK_twistingPieces_twist2.input2X") 4;
+connectAttr -f ($R_or_L + "_FK_wrist_control.rotate") ($R_or_L + "_FK_twistingPieces_twist2.input1");
+
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_FK_twistingPieces_twist3");
+setAttr ($R_or_L + "_FK_twistingPieces_twist3.operation") 2;
+setAttr ($R_or_L + "_FK_twistingPieces_twist3.input2X") 6;
+connectAttr -f ($R_or_L + "_FK_wrist_control.rotate") ($R_or_L + "_FK_twistingPieces_twist3.input1");
+
+
+//# Add the fk and IK twist work we did above to a IK/FK switch blend choice. We need four because there are four twisty pieces
+connectAttr -f ($R_or_L + "_IK_wrist_control.rotateX") ($R_or_L + "_IKFK_switch_forearm_twist_wrist.color2.color2R");
+connectAttr -f ($R_or_L + "_FK_twistingPieces_twist1.outputX") ($R_or_L + "_IKFK_switch_forearm_twist1.color2.color2R");
+connectAttr -f ($R_or_L + "_FK_twistingPieces_twist2.outputX") ($R_or_L + "_IKFK_switch_forearm_twist2.color2.color2R");
+connectAttr -f ($R_or_L + "_FK_twistingPieces_twist3.outputX") ($R_or_L + "_IKFK_switch_forearm_twist3.color2.color2R");
+
+connectAttr -f ($R_or_L + "_twistingPieces_addup_wrist.output") ($R_or_L + "_IKFK_switch_forearm_twist_wrist.color1.color1R") ;
+connectAttr -f ($R_or_L + "_twistingPieces_addup3.output") ($R_or_L + "_IKFK_switch_forearm_twist1.color1.color1R") ;
+connectAttr -f ($R_or_L + "_twistingPieces_addup2.output") ($R_or_L + "_IKFK_switch_forearm_twist2.color1.color1R") ;
+connectAttr -f ($R_or_L + "_twistingPieces_addup1.output") ($R_or_L + "_IKFK_switch_forearm_twist3.color1.color1R") ;
+
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_IKFK_switch_forearm_twist_wrist.blender");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_IKFK_switch_forearm_twist1.blender");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_IKFK_switch_forearm_twist2.blender");
+connectAttr -f ($R_or_L + "_IK_FK_arm_switch.IKFKswitch") ($R_or_L + "_IKFK_switch_forearm_twist3.blender");
+//# connect the final results to the base arm
+connectAttr -f ($R_or_L + "_IKFK_switch_forearm_twist_wrist.outputR") ($R_or_L + "_base_wrist.rotateX");
+connectAttr -f ($R_or_L + "_IKFK_switch_forearm_twist1.outputR") ($R_or_L + "_base_twist3.rotateX");
+connectAttr -f ($R_or_L + "_IKFK_switch_forearm_twist2.outputR") ($R_or_L + "_base_twist2.rotateX");
+connectAttr -f ($R_or_L + "_IKFK_switch_forearm_twist3.outputR") ($R_or_L + "_base_twist1.rotateX");
 
 //# Create a blend node and connect translation and rotation attributes from IK / FK legs to the Base leg
 
@@ -424,8 +468,8 @@ float $arm_to_elbow_original_distance = `getAttr ($R_or_L + "_arm_to_elbow_dista
 float $elbow_to_wrist_original_distance = `getAttr ($R_or_L + "_elbow_to_wrist_distance.distance")`;
 float $arm_to_wrist_original_distance = `getAttr ($R_or_L + "_arm_to_wrist_distance.distance")`;
 //# also store original values of the leg
-float $original_IK_forearm = `getAttr ($R_or_L + "_IK_forearm.translateY")`;
-float $original_IK_wrist = `getAttr ($R_or_L + "_IK_wrist.translateY")`;
+float $original_IK_forearm = `getAttr ($R_or_L + "_IK_forearm.translateX")`;
+float $original_IK_wrist = `getAttr ($R_or_L + "_IK_wrist.translateX")`;
 float $forearm_and_wrist_totalValue = $original_IK_forearm + $original_IK_wrist;
 
 //# Create stretchy nodes
@@ -466,7 +510,7 @@ connectAttr -f ($R_or_L + "_IK_wrist_control.IK_elbowSnap") ($R_or_L + "_forearm
 
 //# finally connect it to the leg!
 
-connectAttr -f ($R_or_L + "_forearm_elbowSnap_choice.outputG") ($R_or_L + "_IK_forearm.translateY");
+connectAttr -f ($R_or_L + "_forearm_elbowSnap_choice.outputG") ($R_or_L + "_IK_forearm.translateX");
 
 //# NOW DUPLICATE IT ALL OVER AGAIN FOR THE HEEL!
 //# NOW DUPLICATE IT ALL OVER AGAIN FOR THE HEEL!
@@ -510,12 +554,16 @@ connectAttr -f ($R_or_L + "_IK_wrist_control.IK_elbowSnap") ($R_or_L + "_wrist_e
 
 //# finally connect it to the leg!
 
-connectAttr -f ($R_or_L + "_wrist_elbowSnap_choice.outputG") ($R_or_L + "_IK_wrist.translateY");
+connectAttr -f ($R_or_L + "_wrist_elbowSnap_choice.outputG") ($R_or_L + "_IK_wrist.translateX");
 
 //# Hide all locators
 setAttr ($R_or_L + "_IK_STRETCHY_wrist_locator.visibility") 0;
 setAttr ($R_or_L + "_elbow_control_locator.visibility") 0;
 setAttr ($R_or_L + "_IK_forearm_locator.visibility") 0;
+setAttr ($R_or_L + "_IK_arm_locator.visibility") 0;
+select -r ($R_or_L + "_IK_arm_locator");
+select -tgl ($R_or_L + "_arm_controls");
+parent;
 //# Hide the FK and IK set of bones for tidiness
 setAttr ($R_or_L + "_IK_arm.visibility") 0;
 setAttr ($R_or_L + "_FK_arm.visibility") 0;
