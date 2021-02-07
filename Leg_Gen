@@ -533,3 +533,18 @@ setAttr ($R_or_L + "_IK_STRETCHY_heel_locator.visibility") 0;
 //# Hide the FK and IK set of bones for tidiness
 setAttr ($R_or_L + "_IK_leg.visibility") 0;
 setAttr ($R_or_L + "_FK_leg.visibility") 0;
+
+
+//# Complete by adding the controls to the correct display layer (red for right, blue for left). Creates the display layer if it doesn't already exist.
+if( `objExists ($R_or_L + "_controls")` ) {
+
+} else {
+    createDisplayLayer -name ($R_or_L + "_controls") -number 1 -empty;
+    if ( $R_or_L == "L" ) {
+setAttr ($R_or_L + "_controls.displayType") 0; setAttr ($R_or_L + "_controls.color") 6; setAttr ($R_or_L + "_controls.overrideColorRGB") 0 0 0; setAttr ($R_or_L + "_controls.overrideRGBColors") 0; 
+} else {
+setAttr ($R_or_L + "_controls.displayType") 0; setAttr ($R_or_L + "_controls.color") 13; setAttr ($R_or_L + "_controls.overrideColorRGB") 0 0 0; setAttr ($R_or_L + "_controls.overrideRGBColors") 0; 
+}}
+
+	connectAttr -f ($R_or_L + "_controls.drawInfo") ($R_or_L + "_leg_controls.drawOverride");
+
