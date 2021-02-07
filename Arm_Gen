@@ -17,6 +17,8 @@ string $FK_arm_list[] = `ls -sl`;
 
 //# make FK nurb controls
 circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_arm_control");
+rotate -r -os -fo 0 0 -90 ;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
 group -em -name ($R_or_L + "_FK_arm_control_pivotgroup");
 select -cl;
 select -r ($R_or_L + "_FK_arm_control");
@@ -28,7 +30,8 @@ select -tgl ($R_or_L + "_FK_arm");
 parent -r -s;
 parent -w;
 
-circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_forearm_control");
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_forearm_control");rotate -r -os -fo 0 0 -90 ;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
 group -em -name ($R_or_L + "_FK_forearm_control_pivotgroup");
 select -cl;
 select -r ($R_or_L + "_FK_forearm_control");
@@ -40,7 +43,8 @@ select -tgl ($R_or_L + "_FK_forearm");
 parent -r -s;
 parent -w;
 
-circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_wrist_control");
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 11 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_wrist_control");rotate -r -os -fo 0 0 -90 ;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
 group -em -name ($R_or_L + "_FK_wrist_control_pivotgroup");
 select -cl;
 select -r ($R_or_L + "_FK_wrist_control");
