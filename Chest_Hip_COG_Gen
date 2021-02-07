@@ -56,6 +56,10 @@ rename $spine_ikHandle[0] ($R_or_L + "_IK_spine_ikHandle");
 rename $spine_ikHandle[1] ($R_or_L + "_IK_spine_effector");
 rename $spine_ikHandle[2] ($R_or_L + "_IK_spine_curve");
 
+setAttr ($R_or_L + "_IK_spine_ikHandle.visibility") 0;
+setAttr ($R_or_L + "_IK_spine_effector.visibility") 0;
+setAttr ($R_or_L + "_IK_spine_curve.visibility") 0;
+
 //# generates a curveInfo node for the curve
 select -r ($R_or_L + "_IK_spine_curve");
 string $IK_spine_curveinfo = `arclen -ch 1 ($R_or_L + "_IK_spine_curve")`;
@@ -107,6 +111,9 @@ select -tgl ($R_or_L + "_IK_hips");
 parentConstraint -mo -weight 1;
 
 
+//# attempting to correct the control rotation on the hips.
+
+
 //# Add a choice for stretchiness!
 addAttr -ln "StretchySpineSwitch" -nn "_Stretchy Spine" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_IK_chest_control");
 setAttr -e-keyable true ($R_or_L + "_IK_chest_control.StretchySpineSwitch");
@@ -137,5 +144,79 @@ connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine
 connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine_F.translateX");
 connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_chest.translateX");
 
+
+//# make COG nurb controls
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 28 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_COGA_control");
+select -tgl ($R_or_L + "_IK_hips");
+MatchTranslation;
+select -cl;
+select -r ($R_or_L + "_COGA_control");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 25 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_COGB_control");
+select -tgl ($R_or_L + "_IK_hips");
+MatchTranslation;
+select -cl;
+select -r ($R_or_L + "_COGB_control");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 22 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_COGC_control");
+select -tgl ($R_or_L + "_IK_hips");
+MatchTranslation;
+select -cl;
+select -r ($R_or_L + "_COGC_control");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+
+//# Create a seperate group to separate hips/chest from the cog, but allow them to be constrained together.
+group -em -name ($R_or_L + "_hips_and_chest_pivotgroup");
+select -r ($R_or_L + "_IK_hips_control");
+select -tgl ($R_or_L + "_IK_chest_control");
+select -tgl ($R_or_L + "_hips_and_chest_pivotgroup");
+parent;
+
+select -r ($R_or_L + "_COGC_control");
+select -tgl ($R_or_L + "_COGB_control");
+parent;
+select -r ($R_or_L + "_COGB_control");
+select -tgl ($R_or_L + "_COGA_control");
+parent;
+select -r ($R_or_L + "_custom_hips_pivotgroup");
+select -tgl ($R_or_L + "_COGC_control");
+parent;
+select -cl;
+
+select -r ($R_or_L + "_COGC_control");
+select -tgl ($R_or_L + "_hips_and_chest_pivotgroup");
+parentConstraint -mo -weight 1;
+
+//# Extra COGs vis control
+addAttr -ln "ExtraCogs" -nn "Extra Cogs" -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_COGA_control");
+setAttr -e-keyable true ($R_or_L + "_COGA_control.ExtraCogs");
+
+connectAttr -f ($R_or_L + "_COGA_control.ExtraCogs")($R_or_L + "_COGB_control.visibility");
+connectAttr -f ($R_or_L + "_COGA_control.ExtraCogs")($R_or_L + "_COGC_control.visibility");
+
+
+//# Dump them into a collective group for tidiness.
+group -em -name ($R_or_L + "_body_controls");
+select -r ($R_or_L + "_COGA_control");
+select -tgl ($R_or_L + "_hips_and_chest_pivotgroup");
+select -tgl ($R_or_L + "_body_controls");
+parent;
+
+//# Complete by adding the controls to the correct display layer (red for right, blue for left). Creates the display layer if it doesn't already exist.
+if( `objExists ($R_or_L + "_controls")` ) {
+
+} else {
+    createDisplayLayer -name ($R_or_L + "_controls") -number 1 -empty;
+    if ( $R_or_L == "M" ) {
+setAttr ($R_or_L + "_controls.displayType") 0; setAttr ($R_or_L + "_controls.color") 17; setAttr ($R_or_L + "_controls.overrideColorRGB") 0 0 0; setAttr ($R_or_L + "_controls.overrideRGBColors") 0; 
+} }
+
+	connectAttr -f ($R_or_L + "_controls.drawInfo") ($R_or_L + "_body_controls.drawOverride");
 
 
