@@ -580,3 +580,12 @@ setAttr ($R_or_L + "_IK_arm.visibility") 0;
 setAttr ($R_or_L + "_FK_arm.visibility") 0;
 setAttr ($R_or_L + "_twister_arm.visibility") 0;
 setAttr ($R_or_L + "_IK_arm_ikHandle.visibility") 0;
+
+//# Complete by adding the controls to the correct display layer (red for right, blue for left)
+
+createDisplayLayer -name ($R_or_L + "_controls") -number 1 -empty;
+setAttr ($R_or_L + "_controls.displayType") 0; setAttr ($R_or_L + "_controls.color") 6; setAttr ($R_or_L + "_controls.overrideColorRGB") 0 0 0; setAttr ($R_or_L + "_controls.overrideRGBColors") 0; 
+string $L = "L";
+if ($R_or_L == $L) {
+	connectAttr -f ($R_or_L + "_controls.drawInfo") ($R_or_L + "_arm_controls.drawOverride");
+}
