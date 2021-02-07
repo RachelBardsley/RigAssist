@@ -3,6 +3,13 @@ string $arm_duplicate[] = `ls -sl`;
 //#determine if L or R 
 string $R_or_L = `substring $FK_arm[0] 1 1`;
 
+select -r ($R_or_L + "_base_arm");
+joint -e  -oj xyz -secondaryAxisOrient yup -zso;
+select -r ($R_or_L + "_base_forearm") ;
+joint -e  -oj xyz -secondaryAxisOrient yup -zso;
+select -r ($R_or_L + "_base_wrist") ;
+joint -e  -oj none -zso;
+
 //# create FK arm copy
 select $arm_duplicate[0];
 duplicate -rr;
