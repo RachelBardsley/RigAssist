@@ -1,7 +1,7 @@
 string $spine_duplicate[] = `ls -sl`;
 
 //#determine if L or R - in the case of the spine, it is just M for middle.
-string $R_or_L = `substring $FK_spine[0] 1 1`;
+string $R_or_L = `substring $IK_spine[0] 1 1`;
 
 //# Orient joints check
 select $spine_duplicate[0];
@@ -13,7 +13,7 @@ duplicate -rr;
 searchReplaceNames "base" "IK" "hierarchy";
 string $IK_spine[] = `ls -sl`;
 int $namelen = `size $IK_spine[0]` - 1;
-string $IK_spine_rename = `substring $IK_spine[0] 0 $namelen`;
+string $IK_spine_rename = `substring $IK_spine[0] 1 $namelen`;
 rename $IK_spine[0] $IK_spine_rename;
 
 //# create the extra twist joints in the spine
@@ -71,54 +71,114 @@ select -add M_IK_chest ;
 select -add M_IK_spine_curve ;
 SmoothBindSkin -bcp -tsb;
 
-//# Create controls for chest and hips
-select custom_chest_shape;
-duplicate -rr;
-string $tempChestContro1_1[] = `ls -sl`;
-group -em -n ($R_or_L + "_custom_chest_pivotgroup");
-select -r ($tempChestContro1_1[0] + "Shape");
-select -tgl ($R_or_L + "_custom_chest_pivotgroup");
-parent;
-select -cl;
-select -r ($R_or_L + "_custom_chest_pivotgroup");
+//# Create 'handle' controls for chest and hips
+
+group -em -n ($R_or_L + "_IK_chest_handle");
+select -r ($R_or_L + "_IK_chest_handle");
 select -tgl ($R_or_L + "_IK_chest");
 parent -r -s;
 parent -w;
 
-rename $tempChestContro1_1 ($R_or_L + "_IK_chest_control");
+group -em -n ($R_or_L + "_IK_hips_handle");
+select -r ($R_or_L + "_IK_hips_handle");
+select -tgl ($R_or_L + "_IK_hips");
+MatchTranslation;
+select -cl;
 
-select -r ($R_or_L + "_IK_chest_control");
+select -r ($R_or_L + "_IK_chest_handle");
 select -tgl ($R_or_L + "_IK_chest");
 parentConstraint -mo -weight 1;
+
+select -r ($R_or_L + "_IK_hips_handle");
+select -tgl ($R_or_L + "_IK_hips");
+parentConstraint -mo -weight 1;
+
+//# And extra waist movement control, it uses a curve vertex cluster so it's not great but it works.
+//# THIS HAS TO BE REPOSITIONED LATER, using the IK spine curve length to get the middle.
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 15 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_extra_waist_control");
+group -em -name ($R_or_L + "_extra_waist_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_extra_waist_control");
+select -tgl ($R_or_L + "_extra_waist_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_extra_waist_pivotgroup");
+select -tgl ($R_or_L + "_IK_chest");
+MatchTranslation;
+select -cl;
+select -r ($R_or_L + "_extra_waist_pivotgroup");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+
+//# Reposition extra waist control from earlier.
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_midspine_length");
+setAttr ($R_or_L + "_midspine_length.operation") 2;
+setAttr ($R_or_L + "_midspine_length.input2X") -2;
+setAttr ($R_or_L + "_midspine_length.input1X")$staticspine;
+
+connectAttr -f ($R_or_L + "_midspine_length.outputX")($R_or_L + "_extra_waist_pivotgroup.translateY");
+
+select -cl;
+
+
+//# create nicer chest and hips control with better pivots
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_quarterhips_length");
+setAttr ($R_or_L + "_quarterhips_length.operation") 2;
+setAttr ($R_or_L + "_quarterhips_length.input2X") 4;
+setAttr ($R_or_L + "_quarterhips_length.input1X")$staticspine;
+
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_quarterchest_length");
+setAttr ($R_or_L + "_quarterchest_length.operation") 2;
+setAttr ($R_or_L + "_quarterchest_length.input2X") -4;
+setAttr ($R_or_L + "_quarterchest_length.input1X")$staticspine;
+
+float $quarterchestlength = `getAttr ($R_or_L + "_quarterchest_length.output.outputX")`;
+float $quarterhipslength = `getAttr ($R_or_L + "_quarterhips_length.output.outputX")`;
+
+
+select custom_chest_shape;
+duplicate -rr;
+string $tempChestControl_1[] = `ls -sl`;
+rename $tempChestControl_1 ($R_or_L + "_IK_chest_control");
+select -tgl ($R_or_L + "_IK_chest_handle");
+MatchTranslation;
+select -r ($R_or_L + "_IK_chest_control");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+move -r -os -wd 0 $quarterchestlength 0;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
 
 select custom_hips_shape;
 duplicate -rr;
-string $tempHipsContro1_1[] = `ls -sl`;
-group -em -n ($R_or_L + "_custom_hips_pivotgroup");
-select -r ($tempHipsContro1_1[0] + "Shape");
-select -tgl ($R_or_L + "_custom_hips_pivotgroup");
+string $tempHipsControl_1[] = `ls -sl`;
+rename $tempHipsControl_1 ($R_or_L + "_IK_hips_control");
+select -tgl ($R_or_L + "_IK_hips_handle");
+MatchTranslation;
+select -r ($R_or_L + "_IK_hips_control");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+move -r -os -wd 0 $quarterhipslength 0;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+select -r ($R_or_L + "_IK_hips_handle");
+select -tgl ($R_or_L + "_IK_hips_control");
 parent;
 select -cl;
-select -r ($R_or_L + "_custom_hips_pivotgroup");
-select -tgl ($R_or_L + "_IK_hips");
-parent -r -s;
-parent -w;
 
-rename $tempHipsContro1_1 ($R_or_L + "_IK_hips_control");
-
-select -r ($R_or_L + "_IK_hips_control");
-select -tgl ($R_or_L + "_IK_hips");
-parentConstraint -mo -weight 1;
-
-
-//# attempting to correct the control rotation on the hips.
-
+select -r ($R_or_L + "_IK_chest_handle");
+select -tgl ($R_or_L + "_IK_chest_control");
+parent;
+select -cl;
 
 //# Add a choice for stretchiness!
-addAttr -ln "StretchySpineSwitch" -nn "_Stretchy Spine" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_IK_chest_control");
+select -cl;
+select -r ($R_or_L + "_IK_hips_control");
+addAttr -ln "StretchySpineSwitch" -nn "Stretchy Spine" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_IK_chest_control");
 setAttr -e-keyable true ($R_or_L + "_IK_chest_control.StretchySpineSwitch");
 
 shadingNode -asUtility blendColors -name ($R_or_L + "_StretchySpineChoice");
+connectAttr -f ($R_or_L + "_IK_chest_control.StretchySpineSwitch")($R_or_L + "_StretchySpineChoice.blender");
 connectAttr -f ($R_or_L + "_IK_chest_control.StretchySpineSwitch")($R_or_L + "_StretchySpineChoice.blender");
 
 //# Find spine length
@@ -143,6 +203,32 @@ connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine
 connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine_E.translateX");
 connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_spine_F.translateX");
 connectAttr -f ($R_or_L + "_StretchySpineChoice.outputR")($R_or_L + "_base_chest.translateX");
+
+//# create a cluster handle to control the IK spine curve vertex
+
+group -em -name ($R_or_L + "_waist_cluster_pivotgroup");
+select -r ($R_or_L + "_waist_cluster_pivotgroup");
+select -tgl ($R_or_L + "_extra_waist_control");
+MatchTranslation;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+setAttr ($R_or_L + "_waist_cluster_pivotgroup.visibility") 0;
+select -cl;
+select -r ($R_or_L + "_IK_spine_curve.cv[1]");
+select -tgl ($R_or_L + "_IK_spine_curve.cv[2]");
+cluster -relative -name ($R_or_L + "_waist_cluster");
+select -tgl ($R_or_L + "_waist_cluster_pivotgroup");
+parent;
+select -cl;
+
+select -r ($R_or_L + "_waist_cluster_pivotgroup");
+select -tgl ($R_or_L + "_extra_waist_control");
+parent;
+select -cl;
+
+//# To avoid the cluster double transforming, use -relative when creating the cluster and manually attach the translate/rotate of the control
+connectAttr -f ($R_or_L + "_extra_waist_control.translate") ($R_or_L + "_waist_clusterHandle.translate");
+connectAttr -f ($R_or_L + "_extra_waist_control.rotate") ($R_or_L + "_waist_clusterHandle.rotate");
 
 
 //# make COG nurb controls
@@ -172,9 +258,11 @@ select -cl;
 
 
 //# Create a seperate group to separate hips/chest from the cog, but allow them to be constrained together.
+
 group -em -name ($R_or_L + "_hips_and_chest_pivotgroup");
-select -r ($R_or_L + "_custom_chest_pivotgroup");
-select -add ($R_or_L + "_custom_hips_pivotgroup");
+select -r ($R_or_L + "_IK_chest_control");
+select -add ($R_or_L + "_extra_waist_pivotgroup");
+select -add ($R_or_L + "_IK_hips_control");
 select -add ($R_or_L + "_hips_and_chest_pivotgroup");
 parent;
 
