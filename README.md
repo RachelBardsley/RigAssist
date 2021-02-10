@@ -3,6 +3,7 @@ Maya LT mel script for quicker rigging
 
 TO DO LIST:
 - Neck + head gen
+- Fix 'symmetry' for IK/FK arms and legs
 - Connect shoulders with arms (shoulder_gen)
 - World space for IK/FK arms, IK/FK legs and head
 - Visibility toggle for controls
