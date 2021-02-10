@@ -1,0 +1,87 @@
+
+string $shoulder_duplicate[] = `ls -sl`;
+spaceLocator -p 0 0 0 -n ($shoulder_duplicate[0] + "_locator");
+
+select -tgl $shoulder_duplicate;
+MatchTranslation;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+string $R_or_L = `substring $shoulder_duplicate[0] 1 1`;
+
+//# Create custom control
+select custom_shoulder_shape;
+duplicate -rr;
+string $tempShoulderContro1[] = `ls -sl`;
+rename $tempShoulderContro1 ($R_or_L + "_shoulder_control");
+group -em -n ($R_or_L + "_custom_shoulder_pivotgroup");
+
+float $shoulderRotateValue = 0;
+//# 
+if($R_or_L == "L" ) {
+ $shoulderRotateValue = -45;
+} else {
+    $shoulderRotateValue = 45;
+    }
+
+//# return to making the controls
+
+select -r ($R_or_L + "_custom_shoulder_pivotgroup");
+rotate -r -os -fo 0 0 $shoulderRotateValue ;
+select -cl;
+select -r ($R_or_L + "_shoulder_control");
+select -tgl ($R_or_L + "_custom_shoulder_pivotgroup");
+parent -r -s;
+select -cl;
+select($R_or_L + "_custom_shoulder_pivotgroup");
+select -tgl ($R_or_L + "_shoulder");
+MatchTranslation;
+select -cl;
+
+select -r ($R_or_L + "_shoulder_control");
+select -tgl ($R_or_L + "_shoulder");
+doCreateParentConstraintArgList 1 { "1","0","0","0","0","0","0","0","1","","1" };
+parentConstraint -mo -weight 1;
+select -cl;
+
+group -em -name ($R_or_L + "_shoulder_controls");
+select -cl;
+select -r ($R_or_L + "_shoulder_locator");
+select -tgl ($R_or_L + "_shoulder_control");
+parent;
+select -cl;
+select -r ($R_or_L + "_custom_shoulder_pivotgroup");
+select -tgl ($R_or_L + "_shoulder_controls");
+parent;
+
+if($R_or_L == "R" ) {
+select -r ($R_or_L + "_custom_shoulder_pivotgroup");
+rotate 0 180 225;
+scale -1 -1 -1;
+}
+    
+if( `objExists M_shoulder_controls` ) {
+select -r ($R_or_L + "_shoulder_controls");;
+select -tgl M_shoulder_controls;
+parent;
+select -cl;
+} else {
+group -em -name "M_shoulder_controls";
+select -r ($R_or_L + "_shoulder_controls");;
+select -tgl M_shoulder_controls;
+parent;
+select -cl;
+}
+
+//# Complete by adding the controls to the correct display layer (red for right, blue for left). Creates the display layer if it doesn't already exist.
+if( `objExists ($R_or_L + "_controls")` ) {
+
+} else {
+    createDisplayLayer -name ($R_or_L + "_controls") -number 1 -empty;
+    if ( $R_or_L == "L" ) {
+setAttr ($R_or_L + "_controls.displayType") 0; setAttr ($R_or_L + "_controls.color") 6; setAttr ($R_or_L + "_controls.overrideColorRGB") 0 0 0; setAttr ($R_or_L + "_controls.overrideRGBColors") 0; 
+} else {
+setAttr ($R_or_L + "_controls.displayType") 0; setAttr ($R_or_L + "_controls.color") 13; setAttr ($R_or_L + "_controls.overrideColorRGB") 0 0 0; setAttr ($R_or_L + "_controls.overrideRGBColors") 0; 
+}};
+
+connectAttr -f ($R_or_L + "_controls.drawInfo") ($R_or_L + "_shoulder_controls.drawOverride");
