@@ -1,7 +1,7 @@
 string $leg_duplicate[] = `ls -sl`;
 
 //#determine if L or R 
-string $R_or_L = `substring $FK_leg[0] 1 1`;
+string $R_or_L = `substring $leg_duplicate[0] 1 1`;
 
 select -r ($R_or_L + "_base_leg");
 joint -e  -oj yzx -secondaryAxisOrient xup -ch -zso;
