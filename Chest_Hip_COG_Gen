@@ -1,7 +1,7 @@
 string $spine_duplicate[] = `ls -sl`;
 
 //#determine if L or R - in the case of the spine, it is just M for middle.
-string $R_or_L = `substring $IK_spine[0] 1 1`;
+string $R_or_L = `substring $spine_duplicate[0] 1 1`;
 
 //# Orient joints check
 select $spine_duplicate[0];
