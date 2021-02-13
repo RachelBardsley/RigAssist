@@ -45,7 +45,7 @@ setAttr ($R_or_L + "_base_chest.translateX") $spine_insert_lengthvalue;
 
 //# Unparent the IK chest from the IK hips, we need them separate to do a skin bind
 select -r ($R_or_L + "_IK_chest");
-select -tgl spine_group;
+select -tgl ($R_or_L + "_spine_group");
 parent;
 
 //# Add IK spline handle
