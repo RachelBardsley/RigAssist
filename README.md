@@ -7,7 +7,7 @@ TO DO LIST:
 - Connect shoulders with arms (shoulder_gen)
 - World space for IK/FK arms, IK/FK legs and head
 - Visibility toggle for controls
-- Make a better looking control for the shoulders
+- Make a better looking control for the shoulders *DONE
 
 Visual aids:
 - Make knee/elbow control more visible when kneesnap/elbowsnap is turned on (visual aid)
