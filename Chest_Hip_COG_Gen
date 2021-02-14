@@ -140,11 +140,11 @@ connectAttr -f ($R_or_L + "_StretchySpineChoice2.outputR")($R_or_L + "_base_spin
 
 //# Connect Twist to Chest
 shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistychest1");
-setAttr ($R_or_L + "_twistychest1.input2Y") -1;
+setAttr ($R_or_L + "_twistychest1.input2Y") 1;
 connectAttr -f ($R_or_L + "_IK_chest_control.rotateY") ($R_or_L + "_twistychest1.input1Y");
 
 shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistychest2");
-setAttr ($R_or_L + "_twistychest2.input2Y") -1;
+setAttr ($R_or_L + "_twistychest2.input2Y") 1;
 connectAttr -f ($R_or_L + "_IK_chest_offset_control.rotateY") ($R_or_L + "_twistychest2.input1Y");
 
 
