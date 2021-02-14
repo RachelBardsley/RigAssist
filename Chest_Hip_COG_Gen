@@ -71,10 +71,37 @@ select -tgl M_IK_spine_E;
 MatchTranslation;
 select -r ($R_or_L + "_IK_chest_pivotgroup");
 makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
-select -r ($R_or_L + "_IK_chest_control");
+select -cl;
+
+select custom_chest_shape;
+duplicate -rr;
+string $tempHipsControl_1[] = `ls -sl`;
+rename $tempHipsControl_1 ($R_or_L + "_IK_chest_offset_control");
+group -em -name ($R_or_L + "_IK_chest_offset_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_IK_chest_offset_control");
+select -tgl ($R_or_L + "_IK_chest_offset_pivotgroup");
+parent;
+select -r ($R_or_L + "_IK_chest_offset_pivotgroup");
+select -tgl M_IK_spine_E;
+MatchTranslation;
+select -r ($R_or_L + "_IK_chest_offset_pivotgroup");
+scale 0.9 0.9 0.9;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -r ($R_or_L + "_IK_chest_offset_control");
 select -tgl M_IK_spine_H;
 parentConstraint -mo -weight 1;
-select -cl;
+
+select -r ($R_or_L + "_IK_chest_offset_pivotgroup");
+select -tgl ($R_or_L + "_IK_chest_control");
+parent;
+
+
+//# Chest toggle offset visibility
+addAttr -ln "ChestOffset" -nn "Offset" -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_IK_chest_control");
+setAttr -e-keyable true ($R_or_L + "_IK_chest_control.ChestOffset");
+
+connectAttr -f ($R_or_L + "_IK_chest_control.ChestOffset")($R_or_L + "_IK_chest_offset_control.visibility");
 
 //# generates a curveInfo node for the curve
 select -r ($R_or_L + "_IK2_spine_curve");
@@ -112,10 +139,20 @@ connectAttr -f ($R_or_L + "_StretchySpineChoice2.outputR")($R_or_L + "_base_spin
 connectAttr -f ($R_or_L + "_StretchySpineChoice2.outputR")($R_or_L + "_base_spine_E.translateX");
 
 //# Connect Twist to Chest
-shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistychest");
-setAttr ($R_or_L + "_twistychest.input2Y") -1;
-connectAttr -f ($R_or_L + "_IK_chest_control.rotateY") ($R_or_L + "_twistychest.input1Y");
-connectAttr -f ($R_or_L + "_twistychest.outputY")($R_or_L + "_IK2_spine_ikHandle.twist");
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistychest1");
+setAttr ($R_or_L + "_twistychest1.input2Y") -1;
+connectAttr -f ($R_or_L + "_IK_chest_control.rotateY") ($R_or_L + "_twistychest1.input1Y");
+
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistychest2");
+setAttr ($R_or_L + "_twistychest2.input2Y") -1;
+connectAttr -f ($R_or_L + "_IK_chest_offset_control.rotateY") ($R_or_L + "_twistychest2.input1Y");
+
+
+shadingNode -asUtility addDoubleLinear -name ($R_or_L + "_twistychestadd");
+connectAttr -f ($R_or_L + "_twistychest1.outputY") ($R_or_L + "_twistychestadd.input1");
+connectAttr -f ($R_or_L + "_twistychest2.outputY") ($R_or_L + "_twistychestadd.input2");
+connectAttr -f ($R_or_L + "_twistychestadd.output")($R_or_L + "_IK2_spine_ikHandle.twist");
+
 
 //# create hips
 //# create hips
@@ -188,10 +225,36 @@ select -tgl M_IK_spine_D;
 MatchTranslation;
 select -r ($R_or_L + "_IK_hips_pivotgroup");
 makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
-select -r ($R_or_L + "_IK_hips_control");
+select -cl;
+
+select custom_hips_shape;
+duplicate -rr;
+string $tempHipsControl_1[] = `ls -sl`;
+rename $tempHipsControl_1 ($R_or_L + "_IK_hips_offset_control");
+group -em -name ($R_or_L + "_IK_hips_offset_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_IK_hips_offset_control");
+select -tgl ($R_or_L + "_IK_hips_offset_pivotgroup");
+parent;
+select -r ($R_or_L + "_IK_hips_offset_pivotgroup");
+select -tgl M_IK_spine_D;
+MatchTranslation;
+select -r ($R_or_L + "_IK_hips_offset_pivotgroup");
+scale 0.9 0.9 0.9;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -r ($R_or_L + "_IK_hips_offset_control");
 select -tgl M_IK_spine_A;
 parentConstraint -mo -weight 1;
-select -cl;
+
+select -r ($R_or_L + "_IK_hips_offset_pivotgroup");
+select -tgl ($R_or_L + "_IK_hips_control");
+parent;
+
+//# Chest toggle offset visibility
+addAttr -ln "HipsOffset" -nn "Offset" -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_IK_hips_control");
+setAttr -e-keyable true ($R_or_L + "_IK_hips_control.HipsOffset");
+
+connectAttr -f ($R_or_L + "_IK_hips_control.HipsOffset")($R_or_L + "_IK_hips_offset_control.visibility");
 
 //# generates a curveInfo node for the curve
 select -r ($R_or_L + "_IK1_spine_curve");
@@ -229,10 +292,19 @@ connectAttr -f ($R_or_L + "_StretchySpineChoice1.outputR")($R_or_L + "_base_spin
 connectAttr -f ($R_or_L + "_StretchySpineChoice1.outputR")($R_or_L + "_base_spine_D.translateX");
 
 //# Connect Twist to Hips
-shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistyhips");
-setAttr ($R_or_L + "_twistyhips.input2Y") -1;
-connectAttr -f ($R_or_L + "_IK_hips_control.rotateY") ($R_or_L + "_twistyhips.input1Y");
-connectAttr -f ($R_or_L + "_twistyhips.outputY")($R_or_L + "_IK1_spine_ikHandle.twist");
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistyhips1");
+setAttr ($R_or_L + "_twistyhips1.input2Y") -1;
+connectAttr -f ($R_or_L + "_IK_hips_control.rotateY") ($R_or_L + "_twistyhips1.input1Y");
+
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_twistyhips2");
+setAttr ($R_or_L + "_twistyhips2.input2Y") -1;
+connectAttr -f ($R_or_L + "_IK_hips_offset_control.rotateY") ($R_or_L + "_twistyhips2.input1Y");
+
+
+shadingNode -asUtility addDoubleLinear -name ($R_or_L + "_twistyhipsadd");
+connectAttr -f ($R_or_L + "_twistyhips1.outputY") ($R_or_L + "_twistyhipsadd.input1");
+connectAttr -f ($R_or_L + "_twistyhips2.outputY") ($R_or_L + "_twistyhipsadd.input2");
+connectAttr -f ($R_or_L + "_twistyhipsadd.output")($R_or_L + "_IK1_spine_ikHandle.twist");
 
 //# Create Waist
 //# Create Waist
@@ -241,7 +313,10 @@ connectAttr -f ($R_or_L + "_twistyhips.outputY")($R_or_L + "_IK1_spine_ikHandle.
 //# Create Waist
 //# Create Waist
 
-circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 15 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_waist_control");
+select custom_waist_shape;
+duplicate -rr;
+string $tempWaistControl_1[] = `ls -sl`;
+rename $tempWaistControl_1 ($R_or_L + "_waist_control");
 group -em -name ($R_or_L + "_waist_pivotgroup");
 select -cl;
 select -r ($R_or_L + "_waist_control");
@@ -253,7 +328,10 @@ MatchTranslation;
 select -r ($R_or_L + "_waist_pivotgroup");
 makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
 
-circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 12 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_waist_offset_control");
+select custom_waist_offset_shape;
+duplicate -rr;
+string $tempWaistControl_1[] = `ls -sl`;
+rename $tempWaistControl_1 ($R_or_L + "_waist_offset_control");
 group -em -name ($R_or_L + "_waist_offset_pivotgroup");
 select -cl;
 select -r ($R_or_L + "_waist_offset_control");
@@ -281,8 +359,8 @@ addAttr -ln "WaistOffset" -nn "Offset" -at double  -min 0 -max 1 -dv 0 ($R_or_L 
 setAttr -e-keyable true ($R_or_L + "_waist_control.WaistOffset");
 
 connectAttr -f ($R_or_L + "_waist_control.WaistOffset")($R_or_L + "_waist_offset_control.visibility");
-//# Organise controls
 
+//# Organise controls
 select -cl;
 select -r ($R_or_L + "_IK_chest_pivotgroup");
 select -tgl ($R_or_L + "_IK_hips_pivotgroup");
@@ -291,6 +369,69 @@ select -tgl ($R_or_L + "_IK2_spine_ikHandle");
 select -tgl ($R_or_L + "_waist_pivotgroup");
 parent;
 
+//# make COG nurb controls
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 28 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_COGA_control");
+select -tgl ($R_or_L + "_base_spine_A");
+MatchTranslation;
+select -cl;
+select -r ($R_or_L + "_COGA_control");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
 
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 25 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_COGB_control");
+select -tgl ($R_or_L + "_base_spine_A");
+MatchTranslation;
+select -cl;
+select -r ($R_or_L + "_COGB_control");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
 
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 22 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_COGC_control");
+select -tgl ($R_or_L + "_base_spine_A");
+MatchTranslation;
+select -cl;
+select -r ($R_or_L + "_COGC_control");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
 
+select -r ($R_or_L + "_COGC_control");
+select -tgl ($R_or_L + "_COGB_control");
+parent;
+select -r ($R_or_L + "_COGB_control");
+select -tgl ($R_or_L + "_COGA_control");
+parent;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 18 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_hips_control");
+group -em -name ($R_or_L + "_FK_hips_pivotgroup");
+select -r ($R_or_L + "_FK_hips_control");
+select -tgl ($R_or_L + "_FK_hips_pivotgroup");
+parent;
+select -r ($R_or_L + "_FK_hips_pivotgroup");
+select -tgl ($R_or_L + "_base_spine_A");
+MatchTranslation;
+select -r ($R_or_L + "_FK_hips_pivotgroup");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+select -r ($R_or_L + "_waist_pivotgroup");
+select -tgl ($R_or_L + "_FK_hips_control");
+parent;
+
+//# Extra COGs vis control
+addAttr -ln "ExtraCogs" -nn "Extra Cogs" -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_COGA_control");
+setAttr -e-keyable true ($R_or_L + "_COGA_control.ExtraCogs");
+
+connectAttr -f ($R_or_L + "_COGA_control.ExtraCogs")($R_or_L + "_COGB_control.visibility");
+connectAttr -f ($R_or_L + "_COGA_control.ExtraCogs")($R_or_L + "_COGC_control.visibility");
+
+//# Organise controls to COG
+select -r ($R_or_L + "_COGC_control");
+select -tgl ($R_or_L + "_FK_hips_pivotgroup");
+parentConstraint -mo -weight 1;
+select -cl;
+
+//# Dump them into a collective group for tidiness.
+group -em -name ($R_or_L + "_body_controls");
+select -r ($R_or_L + "_COGA_control");
+select -tgl ($R_or_L + "_FK_hips_pivotgroup");
+select -tgl ($R_or_L + "_body_controls");
+parent;
