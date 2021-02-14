@@ -76,7 +76,7 @@ connectAttr -f ($IK_neck_curveinfo + ".arcLength")($R_or_L + "_IK_neck_curve_len
 float $staticneck = `getAttr ($IK_neck_curveinfo + ".arcLength")`;
 
 
-//# And extra waist movement control, it uses a curve vertex cluster so it's not great but it works.
+//# And extra neck movement control, it uses a curve vertex cluster so it's not great but it works.
 //# THIS HAS TO BE REPOSITIONED LATER, using the IK neck curve length to get the middle.
 circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 5 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_extra_neck_control");
 group -em -name ($R_or_L + "_extra_neck_pivotgroup");
@@ -93,8 +93,6 @@ select -r ($R_or_L + "_extra_neck_pivotgroup");
 makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
 select -cl;
 
-
-
 //# Moved the float staticneck up. Continue
 
 shadingNode -asUtility multiplyDivide -name ($R_or_L + "_IK_neck_curve_static_length");
@@ -103,8 +101,7 @@ setAttr ($R_or_L + "_IK_neck_curve_static_length.input2X") 4;
 setAttr ($R_or_L + "_IK_neck_curve_static_length.input1X")$staticneck;
 
 
-
-//# Reposition extra waist control from earlier.
+//# Reposition extra neck control from earlier.
 shadingNode -asUtility multiplyDivide -name ($R_or_L + "_midneck_length");
 setAttr ($R_or_L + "_midneck_length.operation") 2;
 setAttr ($R_or_L + "_midneck_length.input2X") -2;
@@ -148,51 +145,6 @@ select -r ($R_or_L + "_IK_neck_top_pivotgroup");
 makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
 select -cl;
 
-
-
-//# Add a choice for stretchiness!
-select -cl;
-select -r ($R_or_L + "_IK_neck_bottom_control");
-addAttr -ln "StretchyNeckSwitch" -nn "Stretchy Spine" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_IK_neck_top_control");
-setAttr -e-keyable true ($R_or_L + "_IK_neck_top_control.StretchyNeckSwitch");
-
-shadingNode -asUtility blendColors -name ($R_or_L + "_StretchyNeckChoice");
-connectAttr -f ($R_or_L + "_IK_neck_top_control.StretchyNeckSwitch")($R_or_L + "_StretchyNeckChoice.blender");
-connectAttr -f ($R_or_L + "_IK_neck_top_control.StretchyNeckSwitch")($R_or_L + "_StretchyNeckChoice.blender");
-
-connectAttr -f ($R_or_L + "_IK_neck_curve_length.outputX")($R_or_L + "_StretchyNeckChoice.color1.color1R");
-connectAttr -f ($R_or_L + "_IK_neck_curve_static_length.outputX")($R_or_L + "_StretchyNeckChoice.color2.color2R");
-
-connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_B.translateX");
-connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_C.translateX");
-connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_D.translateX");
-connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_top.translateX");
-
-//# create a cluster handle to control the IK spine curve vertex
-
-group -em -name ($R_or_L + "_waist_cluster_pivotgroup");
-select -r ($R_or_L + "_waist_cluster_pivotgroup");
-select -tgl ($R_or_L + "_extra_neck_control");
-MatchTranslation;
-makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
-
-setAttr ($R_or_L + "_waist_cluster_pivotgroup.visibility") 0;
-select -cl;
-select -r ($R_or_L + "_IK_neck_curve.cv[1]");
-select -tgl ($R_or_L + "_IK_neck_curve.cv[2]");
-cluster -relative -name ($R_or_L + "_waist_cluster");
-select -tgl ($R_or_L + "_waist_cluster_pivotgroup");
-parent;
-select -cl;
-select -r ($R_or_L + "_waist_cluster_pivotgroup");
-select -tgl ($R_or_L + "_extra_neck_control");
-parent;
-select -cl;
-
-//# To avoid the cluster double transforming, use -relative when creating the cluster and manually attach the translate/rotate of the control
-connectAttr -f ($R_or_L + "_extra_neck_control.translate") ($R_or_L + "_waist_clusterHandle.translate");
-connectAttr -f ($R_or_L + "_extra_neck_control.rotate") ($R_or_L + "_waist_clusterHandle.rotate");
-
 //# FK base neck control
 circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 10 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_neck_control");
 group -em -name ($R_or_L + "_FK_neck_pivotgroup");
@@ -235,20 +187,102 @@ select -r ($R_or_L + "_head_controls");
 select -tgl ($R_or_L + "_IK_neck_top_control");
 MatchTranslation;
 select -cl;
+
+select custom_head_shape;
+duplicate -rr;
+string $tempHipsControl_1[] = `ls -sl`;
+rename $tempHipsControl_1 ($R_or_L + "_head_control");
+select custom_head_offset_shape;
+duplicate -rr;
+string $tempHipsControl_1[] = `ls -sl`;
+rename $tempHipsControl_1 ($R_or_L + "_head_offset_control");
+
 group -em -name ($R_or_L + "_head_pivotgroup");
+select -r ($R_or_L + "_head_control");
+select -tgl ($R_or_L + "_head_pivotgroup");
+MatchTranslation;
+parent;
+select -cl;
+group -em -name ($R_or_L + "_head_offset_pivotgroup");
+select -r ($R_or_L + "_head_offset_control");
+select -tgl ($R_or_L + "_head_offset_pivotgroup");
+MatchTranslation;
+parent;
+select -cl;
+
+select -r ($R_or_L + "_head_offset_pivotgroup");
+select -tgl ($R_or_L + "_head_control");
+MatchTranslation;
+parent;
 select -r ($R_or_L + "_head_pivotgroup");
 select -tgl ($R_or_L + "_head_controls");
 MatchTranslation;
 parent;
-select -r ($R_or_L + "_head_pivotgroup");
-select -tgl ($R_or_L + "_IK_neck_top_control");
-parentConstraint -mo -weight 1;
-select -cl;
+
 
 select -r ($R_or_L + "_head_controls");
 select -tgl ($R_or_L + "_FK_neck_control");
 parent;
 select -cl;
+
+select -r ($R_or_L + "_head_offset_control");
+select -tgl ($R_or_L + "_IK_neck_top_control");
+parentConstraint -mo -weight 1;
+select -cl;
+
+//# Add a choice for stretchiness!
+select -cl;
+select -r ($R_or_L + "_head_control");
+addAttr -ln "StretchyNeckSwitch" -nn "Stretchy Neck" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_head_control");
+setAttr -e-keyable true ($R_or_L + "_head_control.StretchyNeckSwitch");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_StretchyNeckChoice");
+connectAttr -f ($R_or_L + "_head_control.StretchyNeckSwitch")($R_or_L + "_StretchyNeckChoice.blender");
+connectAttr -f ($R_or_L + "_head_control.StretchyNeckSwitch")($R_or_L + "_StretchyNeckChoice.blender");
+
+connectAttr -f ($R_or_L + "_IK_neck_curve_length.outputX")($R_or_L + "_StretchyNeckChoice.color1.color1R");
+connectAttr -f ($R_or_L + "_IK_neck_curve_static_length.outputX")($R_or_L + "_StretchyNeckChoice.color2.color2R");
+
+connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_B.translateX");
+connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_C.translateX");
+connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_D.translateX");
+connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_top.translateX");
+
+//# create a cluster handle to control the IK spine curve vertex
+
+group -em -name ($R_or_L + "_neck_cluster_pivotgroup");
+select -r ($R_or_L + "_neck_cluster_pivotgroup");
+select -tgl ($R_or_L + "_extra_neck_control");
+MatchTranslation;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+setAttr ($R_or_L + "_neck_cluster_pivotgroup.visibility") 0;
+select -cl;
+select -r ($R_or_L + "_IK_neck_curve.cv[1]");
+select -tgl ($R_or_L + "_IK_neck_curve.cv[2]");
+cluster -relative -name ($R_or_L + "_neck_cluster");
+select -tgl ($R_or_L + "_neck_cluster_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_neck_cluster_pivotgroup");
+select -tgl ($R_or_L + "_extra_neck_control");
+parent;
+select -cl;
+
+//# To avoid the cluster double transforming, use -relative when creating the cluster and manually attach the translate/rotate of the control
+connectAttr -f ($R_or_L + "_extra_neck_control.translate") ($R_or_L + "_neck_clusterHandle.translate");
+connectAttr -f ($R_or_L + "_extra_neck_control.rotate") ($R_or_L + "_neck_clusterHandle.rotate");
+
+
+//#head offset vis control and extra neck control
+addAttr -ln "ExtraNeck" -nn "Extra Neck" -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_head_control");
+setAttr -e-keyable true ($R_or_L + "_head_control.ExtraNeck");
+connectAttr -f ($R_or_L + "_head_control.ExtraNeck")($R_or_L + "_extra_neck_control.visibility");
+
+addAttr -ln "HeadOffset" -nn "Offset" -at double  -min 0 -max 1 -dv 0 ($R_or_L + "_head_control");
+setAttr -e-keyable true ($R_or_L + "_head_control.HeadOffset");
+connectAttr -f ($R_or_L + "_head_control.HeadOffset")($R_or_L + "_head_offset_control.visibility");
+
 
 //# dirty location maker for head pivot group for world space use
 select -r ($R_or_L + "_head_pivotgroup");
@@ -260,7 +294,7 @@ move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
 makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
 select -tgl $locator_creator[0];
 parent;
-
+setAttr ($locator_creator[0] + "_locator.visibility") 0;
 
 //# Complete by adding the controls to the correct display layer (red for right, blue for left). Creates the display layer if it doesn't already exist.
 if( `objExists ($R_or_L + "_controls")` ) {
