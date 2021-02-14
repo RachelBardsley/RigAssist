@@ -19,34 +19,44 @@ group -em -n ($R_or_L + "_custom_shoulder_pivotgroup");
 float $shoulderRotateValue = 0;
 //# 
 if($R_or_L == "L" ) {
- $shoulderRotateValue = -45;
+ $shoulderRotateValue = 45;
 } else {
     $shoulderRotateValue = 45;
     }
 
 //# return to making the controls
-
-select -r ($R_or_L + "_custom_shoulder_pivotgroup");
-rotate -r -os -fo 0 0 $shoulderRotateValue ;
+select -r ($R_or_L + "_shoulder_control");
+rotate -r -os -fo 0 0 $shoulderRotateValue;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
 select -cl;
 select -r ($R_or_L + "_shoulder_control");
 select -tgl ($R_or_L + "_custom_shoulder_pivotgroup");
-parent -r -s;
+parent;
+select -r ($R_or_L + "_custom_shoulder_pivotgroup");
+
+select -cl;
+
+if($R_or_L == "R" ) {
+select -r ($R_or_L + "_custom_shoulder_pivotgroup");
+rotate 180 0 0 ;
+scale -1 -1 -1;
+}
+
 select -cl;
 select($R_or_L + "_custom_shoulder_pivotgroup");
-select -tgl ($R_or_L + "_shoulder");
+select -tgl ($R_or_L + "_shoulder_1");
 MatchTranslation;
 select -cl;
 
 select -r ($R_or_L + "_shoulder_control");
-select -tgl ($R_or_L + "_shoulder");
+select -tgl ($R_or_L + "_shoulder_1");
 doCreateParentConstraintArgList 1 { "1","0","0","0","0","0","0","0","1","","1" };
 parentConstraint -mo -weight 1;
 select -cl;
 
 group -em -name ($R_or_L + "_shoulder_controls");
 select -cl;
-select -r ($R_or_L + "_shoulder_locator");
+select -r ($R_or_L + "_shoulder_1_locator");
 select -tgl ($R_or_L + "_shoulder_control");
 parent;
 select -cl;
@@ -54,11 +64,6 @@ select -r ($R_or_L + "_custom_shoulder_pivotgroup");
 select -tgl ($R_or_L + "_shoulder_controls");
 parent;
 
-if($R_or_L == "R" ) {
-select -r ($R_or_L + "_custom_shoulder_pivotgroup");
-rotate 0 180 225;
-scale -1 -1 -1;
-}
     
 if( `objExists M_shoulder_controls` ) {
 select -r ($R_or_L + "_shoulder_controls");;
