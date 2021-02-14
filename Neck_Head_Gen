@@ -1,0 +1,276 @@
+string $neck_duplicate[] = `ls -sl`;
+
+//#determine if L or R - in the case of the spine, it is just M for middle.
+string $R_or_L = `substring $neck_duplicate[0] 1 1`;
+
+//# Orient joints check
+select $neck_duplicate[0];
+joint -e  -oj xyz -secondaryAxisOrient zup -ch -zso;
+
+//# create IK arm copy
+select $neck_duplicate[0];
+duplicate -rr;
+searchReplaceNames "base" "IK" "hierarchy";
+string $IK_neck[] = `ls -sl`;
+int $namelen = `size $IK_neck[0]` - 1;
+string $IK_neck_rename = `substring $IK_neck[0] 1 $namelen`;
+rename $IK_neck[0] $IK_neck_rename;
+ 
+
+//# create the extra twist joints in the neck
+//# First we need the length of the neck divided by 2
+float $neck_lengthvalue = `getAttr ($R_or_L + "_base_neck_top.translateX")`;
+$neck_insert_lengthvalue = $neck_lengthvalue/4;
+//# Now create joints and move it by that value.
+insertJoint ($R_or_L + "_base_neck_bottom");
+rename ($R_or_L + "_base_neck_B");
+setAttr ($R_or_L + "_base_neck_B.translateX") $neck_insert_lengthvalue;
+
+insertJoint ($R_or_L + "_base_neck_B");
+rename ($R_or_L + "_base_neck_C");
+setAttr ($R_or_L + "_base_neck_C.translateX") $neck_insert_lengthvalue;
+
+insertJoint ($R_or_L + "_base_neck_C");
+rename ($R_or_L + "_base_neck_D");
+setAttr ($R_or_L + "_base_neck_D.translateX") $neck_insert_lengthvalue;
+
+
+setAttr ($R_or_L + "_base_neck_top.translateX") $neck_insert_lengthvalue;
+
+select -r ($R_or_L + "_base_neck_bottom");
+//# Unparent the IK neck_top from the IK neck_bottom, we need them separate to do a skin bind
+select -r ($R_or_L + "_IK_neck_top");
+select -tgl ($R_or_L + "_neck_group");
+parent;
+
+//# Add IK spline handle
+select -r ($R_or_L + "_base_neck_bottom");
+select -add ($R_or_L + "_base_neck_top");
+$neck_ikHandle = `ikHandle -sol ikSplineSolver`;
+rename $neck_ikHandle[0] ($R_or_L + "_IK_neck_ikHandle");
+rename $neck_ikHandle[1] ($R_or_L + "_IK_neck_effector");
+rename $neck_ikHandle[2] ($R_or_L + "_IK_neck_curve");
+
+setAttr ($R_or_L + "_IK_neck_ikHandle.visibility") 0;
+setAttr ($R_or_L + "_IK_neck_effector.visibility") 0;
+setAttr ($R_or_L + "_IK_neck_curve.visibility") 0;
+
+//# generates a curveInfo node for the curve
+select -r ($R_or_L + "_IK_neck_curve");
+string $IK_neck_curveinfo = `arclen -ch 1 ($R_or_L + "_IK_neck_curve")`;
+select -cl;
+
+//# Do the skin bind
+select -r M_IK_neck_bottom ;
+select -add M_IK_neck_top ;
+select -add M_IK_neck_curve ;
+SmoothBindSkin -bcp -tsb;
+
+
+//# Find neck length
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_IK_neck_curve_length");
+setAttr ($R_or_L + "_IK_neck_curve_length.operation") 2;
+setAttr ($R_or_L + "_IK_neck_curve_length.input2X") 4;
+connectAttr -f ($IK_neck_curveinfo + ".arcLength")($R_or_L + "_IK_neck_curve_length.input1X");
+
+float $staticneck = `getAttr ($IK_neck_curveinfo + ".arcLength")`;
+
+
+//# And extra waist movement control, it uses a curve vertex cluster so it's not great but it works.
+//# THIS HAS TO BE REPOSITIONED LATER, using the IK neck curve length to get the middle.
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 5 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_extra_neck_control");
+group -em -name ($R_or_L + "_extra_neck_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_extra_neck_control");
+select -tgl ($R_or_L + "_extra_neck_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_extra_neck_pivotgroup");
+select -tgl ($R_or_L + "_IK_neck_top");
+MatchTranslation;
+select -cl;
+select -r ($R_or_L + "_extra_neck_pivotgroup");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+
+
+//# Moved the float staticneck up. Continue
+
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_IK_neck_curve_static_length");
+setAttr ($R_or_L + "_IK_neck_curve_static_length.operation") 2;
+setAttr ($R_or_L + "_IK_neck_curve_static_length.input2X") 4;
+setAttr ($R_or_L + "_IK_neck_curve_static_length.input1X")$staticneck;
+
+
+
+//# Reposition extra waist control from earlier.
+shadingNode -asUtility multiplyDivide -name ($R_or_L + "_midneck_length");
+setAttr ($R_or_L + "_midneck_length.operation") 2;
+setAttr ($R_or_L + "_midneck_length.input2X") -2;
+setAttr ($R_or_L + "_midneck_length.input1X")$staticneck;
+
+connectAttr -f ($R_or_L + "_midneck_length.outputX")($R_or_L + "_extra_neck_pivotgroup.translateY");
+
+select -cl;
+
+
+//# create nicer neck_top and neck_bottom control with better pivots
+
+//# make FK nurb controls
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_IK_neck_bottom_control");
+group -em -name ($R_or_L + "_IK_neck_bottom_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_IK_neck_bottom_control");
+select -tgl ($R_or_L + "_IK_neck_bottom_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_IK_neck_bottom_control");
+select -tgl ($R_or_L + "_IK_neck_bottom");
+MatchTranslation;
+parentConstraint -mo -weight 1;
+select -r ($R_or_L + "_IK_neck_bottom_pivotgroup");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_IK_neck_top_control");
+group -em -name ($R_or_L + "_IK_neck_top_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_IK_neck_top_control");
+select -tgl ($R_or_L + "_IK_neck_top_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_IK_neck_top_control");
+select -tgl ($R_or_L + "_IK_neck_top");
+MatchTranslation;
+parentConstraint -mo -weight 1;
+select -r ($R_or_L + "_IK_neck_top_pivotgroup");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -cl;
+
+
+
+//# Add a choice for stretchiness!
+select -cl;
+select -r ($R_or_L + "_IK_neck_bottom_control");
+addAttr -ln "StretchyNeckSwitch" -nn "Stretchy Spine" -at double  -min 0 -max 1 -dv 1 ($R_or_L + "_IK_neck_top_control");
+setAttr -e-keyable true ($R_or_L + "_IK_neck_top_control.StretchyNeckSwitch");
+
+shadingNode -asUtility blendColors -name ($R_or_L + "_StretchyNeckChoice");
+connectAttr -f ($R_or_L + "_IK_neck_top_control.StretchyNeckSwitch")($R_or_L + "_StretchyNeckChoice.blender");
+connectAttr -f ($R_or_L + "_IK_neck_top_control.StretchyNeckSwitch")($R_or_L + "_StretchyNeckChoice.blender");
+
+connectAttr -f ($R_or_L + "_IK_neck_curve_length.outputX")($R_or_L + "_StretchyNeckChoice.color1.color1R");
+connectAttr -f ($R_or_L + "_IK_neck_curve_static_length.outputX")($R_or_L + "_StretchyNeckChoice.color2.color2R");
+
+connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_B.translateX");
+connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_C.translateX");
+connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_D.translateX");
+connectAttr -f ($R_or_L + "_StretchyNeckChoice.outputR")($R_or_L + "_base_neck_top.translateX");
+
+//# create a cluster handle to control the IK spine curve vertex
+
+group -em -name ($R_or_L + "_waist_cluster_pivotgroup");
+select -r ($R_or_L + "_waist_cluster_pivotgroup");
+select -tgl ($R_or_L + "_extra_neck_control");
+MatchTranslation;
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+
+setAttr ($R_or_L + "_waist_cluster_pivotgroup.visibility") 0;
+select -cl;
+select -r ($R_or_L + "_IK_neck_curve.cv[1]");
+select -tgl ($R_or_L + "_IK_neck_curve.cv[2]");
+cluster -relative -name ($R_or_L + "_waist_cluster");
+select -tgl ($R_or_L + "_waist_cluster_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_waist_cluster_pivotgroup");
+select -tgl ($R_or_L + "_extra_neck_control");
+parent;
+select -cl;
+
+//# To avoid the cluster double transforming, use -relative when creating the cluster and manually attach the translate/rotate of the control
+connectAttr -f ($R_or_L + "_extra_neck_control.translate") ($R_or_L + "_waist_clusterHandle.translate");
+connectAttr -f ($R_or_L + "_extra_neck_control.rotate") ($R_or_L + "_waist_clusterHandle.rotate");
+
+//# FK base neck control
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 10 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n ($R_or_L + "_FK_neck_control");
+group -em -name ($R_or_L + "_FK_neck_pivotgroup");
+select -cl;
+select -r ($R_or_L + "_FK_neck_control");
+select -tgl ($R_or_L + "_FK_neck_pivotgroup");
+parent;
+select -cl;
+select -r ($R_or_L + "_FK_neck_control");
+select -tgl ($R_or_L + "_IK_neck_bottom");
+MatchTranslation;
+select -r ($R_or_L + "_FK_neck_pivotgroup");
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -r ($R_or_L + "_IK_neck_bottom_pivotgroup");
+select -tgl ($R_or_L + "_IK_neck_top_pivotgroup");
+select -tgl ($R_or_L + "_extra_neck_pivotgroup");
+select -tgl ($R_or_L + "_FK_neck_control");
+parent;
+select -cl;
+
+
+//# Dump into group for tidiness
+connectAttr -f ($R_or_L + "_IK_neck_top_control.rotateY") ($R_or_L + "_IK_neck_ikHandle.twist");
+
+//# Dump into group for tidiness
+group -em -name ($R_or_L + "_neck_controls");
+
+select -r ($R_or_L + "_FK_neck_pivotgroup");
+select -tgl ($R_or_L + "_IK_neck_ikHandle");
+select -tgl ($R_or_L + "_neck_controls");
+parent;
+select -cl;
+
+
+
+//# Create placeholder Head Group (keeping in mind we need to make this world space switchable in the future)
+
+group -em -name ($R_or_L + "_head_controls");
+select -r ($R_or_L + "_head_controls");
+select -tgl ($R_or_L + "_IK_neck_top_control");
+MatchTranslation;
+select -cl;
+group -em -name ($R_or_L + "_head_pivotgroup");
+select -r ($R_or_L + "_head_pivotgroup");
+select -tgl ($R_or_L + "_head_controls");
+MatchTranslation;
+parent;
+select -r ($R_or_L + "_head_pivotgroup");
+select -tgl ($R_or_L + "_IK_neck_top_control");
+parentConstraint -mo -weight 1;
+select -cl;
+
+select -r ($R_or_L + "_head_controls");
+select -tgl ($R_or_L + "_FK_neck_control");
+parent;
+select -cl;
+
+//# dirty location maker for head pivot group for world space use
+select -r ($R_or_L + "_head_pivotgroup");
+string $locator_creator[] = `ls -sl`;
+spaceLocator -p 0 0 0 -n ($locator_creator[0] + "_locator");
+
+float $locator_coordinates[] = `xform -q -piv -ws $locator_creator`;
+move -r $locator_coordinates[0] $locator_coordinates[1] $locator_coordinates[2];
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+select -tgl $locator_creator[0];
+parent;
+
+
+//# Complete by adding the controls to the correct display layer (red for right, blue for left). Creates the display layer if it doesn't already exist.
+if( `objExists ($R_or_L + "_controls")` ) {
+
+} else {
+    createDisplayLayer -name ($R_or_L + "_controls") -number 1 -empty;
+    if ( $R_or_L == "M" ) {
+setAttr ($R_or_L + "_controls.displayType") 0; setAttr ($R_or_L + "_controls.color") 17; setAttr ($R_or_L + "_controls.overrideColorRGB") 0 0 0; setAttr ($R_or_L + "_controls.overrideRGBColors") 0; 
+} }
+
+	connectAttr -f ($R_or_L + "_controls.drawInfo") ($R_or_L + "_neck_controls.drawOverride");
+
+
