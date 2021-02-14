@@ -1,0 +1,81 @@
+
+
+select -hierarchy; // select the entire hirearchy below the selected object
+string $entireHierarchy[]= `ls -sl`; // store the selected objects in an array
+int $i = 0;
+for ($each in $entireHierarchy) // iterate through the selected objects
+{
+    if($i !=0)
+    {
+        group -em -name ($each + "_pivotgroup");
+        select -r ($each + "_pivotgroup");
+        select -tgl $each;
+        MatchTranslation;
+        
+        select -r custom_extra_small_box_shape;
+        duplicate -rr -name ($each + "_control");
+        select -r ($each + "_control");
+        select -tgl $each;
+        MatchTranslation;
+        select -r ($each + "_control");
+        move -r -os -wd 0 0 4;
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+        
+        
+        select -r ($each + "_pivotgroup");
+        select -tgl ($each + "_control");
+        parent;
+        
+        spaceLocator -p 0 0 0 -n ($each + "_locator");
+        select -r ($each + "_locator");
+        select -tgl $each;
+        MatchTranslation;
+        
+        select -r ($each + "_pivotgroup");
+        select -tgl ($each + "_locator");
+        parentConstraint -mo -weight 1;
+        
+        spaceLocator -p 0 0 0 -n ($each + "_eyefollow_locator");
+        select -r ($each + "_eyefollow_locator");
+        select -tgl $each;
+        MatchTranslation;
+        
+        select -r ($each + "_control");
+        select -tgl FACE_L_eye_minute_controls;
+        parent;
+        
+        select -r ($each + "_locator");
+        select -tgl FACE_L_eye_minute_locators;
+        parent;
+        
+        select -r ($each + "_eyefollow_locator");
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+        select -tgl FACE_L_eye_minute_eyefollow_locators;
+        parent;
+        select -cl;
+        
+        select L_hour_eye;
+        duplicate -rr;
+        string $tempFACS[] = `ls -sl`;
+        select -tgl FACE_L_eye_minute;
+        parent;
+        select -cl;
+        
+        select -r $each;
+        select -tgl $tempFACS;
+        parent;
+        select -cl;
+        
+        select -r ($each + "_locator");
+        select -tgl $tempFACS;
+        aimConstraint -mo -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0; 
+        select -cl;
+        select -r ($each + "_eyefollow_locator");
+        select -tgl $tempFACS;
+        aimConstraint -mo -weight .05 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0;
+    }
+    $i = $i + 1;
+}
+select -r L_hour_eye_locator;
+select -tgl FACE_L_eye_minute_eyefollow_locators;
+parentConstraint -mo -weight 1;
